@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36212.18 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "LearnovaAi", "LearnovaAi\LearnovaAi.pyproj", "{30495E78-51F4-4D37-85C2-AB00D4A12A06}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{30495E78-51F4-4D37-85C2-AB00D4A12A06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30495E78-51F4-4D37-85C2-AB00D4A12A06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7119905F-6B24-4895-9F40-48A4D05DAAC4}
+	EndGlobalSection
+EndGlobal
