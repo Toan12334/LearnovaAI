@@ -83,6 +83,7 @@
     <Folder Include="plagiarism-ai-detector\tests\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="plagiarism-ai-detector\.env" />
     <Content Include="plagiarism-ai-detector\.env.example" />
     <Content Include="plagiarism-ai-detector\docker\docker-compose.yml" />
     <Content Include="plagiarism-ai-detector\docker\Dockerfile" />
