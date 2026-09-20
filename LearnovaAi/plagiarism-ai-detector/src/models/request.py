@@ -3,9 +3,18 @@ from typing import Optional, List
 
 
 class PlagiarismCheckRequest(BaseModel):
-    text: str = Field(..., min_length=20, description="Văn bản cần kiểm tra đạo văn")
-    enable_web_search: bool = Field(default=True, description="Bật tìm kiếm nguồn trực tuyến qua Google/Bing")
-    similarity_threshold: float = Field(default=0.75, ge=0.0, le=1.0, description="Ngưỡng tương đồng")
+    user_id: Optional[str] = Field(default=None, description="ID của người dùng sở hữu bài viết")
+    title: Optional[str] = Field(default="Untitled Document", description="Tiêu đề bài viết")
+    text: Optional[str] = Field(default=None, description="Văn bản cần kiểm tra đạo văn")
+    content: Optional[str] = Field(default=None, description="Văn bản cần kiểm tra đạo văn (alias của text)")
+    enable_web_search: bool = Field(default=True, description="Bật tìm kiếm nguồn trực tuyến qua Serper")
+    similarity_threshold: Optional[float] = Field(default=0.75, ge=0.0, le=1.0, description="Ngưỡng tương đồng")
+
+    def get_content(self) -> str:
+        res = self.content or self.text or ""
+        if len(res.strip()) < 15:
+            raise ValueError("Nội dung bài viết quá ngắn để kiểm tra (tối thiểu 15 ký tự).")
+        return res
 
 
 class TimestampVerificationRequest(BaseModel):

@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>30495e78-51f4-4d37-85c2-ab00d4a12a06</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>plagiarism-ai-detector\src\main.py</StartupFile>
+    <StartupFile>plagiarism-ai-detector\tests\test_self_plagiarism.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="plagiarism-ai-detector\src\api\v1\endpoints\ai_detection.py" />
+    <Compile Include="plagiarism-ai-detector\src\api\v1\endpoints\auth.py" />
     <Compile Include="plagiarism-ai-detector\src\api\v1\endpoints\plagiarism.py" />
     <Compile Include="plagiarism-ai-detector\src\api\v1\endpoints\timestamp.py" />
     <Compile Include="plagiarism-ai-detector\src\api\v1\endpoints\__init__.py" />
@@ -30,19 +31,25 @@
     <Compile Include="plagiarism-ai-detector\src\api\__init__.py" />
     <Compile Include="plagiarism-ai-detector\src\core\config.py" />
     <Compile Include="plagiarism-ai-detector\src\core\logging.py" />
+    <Compile Include="plagiarism-ai-detector\src\core\security.py" />
     <Compile Include="plagiarism-ai-detector\src\core\__init__.py" />
     <Compile Include="plagiarism-ai-detector\src\db\postgres_client.py" />
     <Compile Include="plagiarism-ai-detector\src\db\qdrant_client.py" />
+    <Compile Include="plagiarism-ai-detector\src\db\supabase_client.py" />
     <Compile Include="plagiarism-ai-detector\src\db\__init__.py" />
     <Compile Include="plagiarism-ai-detector\src\main.py" />
+    <Compile Include="plagiarism-ai-detector\src\models\auth.py" />
     <Compile Include="plagiarism-ai-detector\src\models\request.py" />
     <Compile Include="plagiarism-ai-detector\src\models\response.py" />
     <Compile Include="plagiarism-ai-detector\src\models\__init__.py" />
     <Compile Include="plagiarism-ai-detector\src\services\ai_detection\model_infer.py" />
     <Compile Include="plagiarism-ai-detector\src\services\ai_detection\perplexity.py" />
     <Compile Include="plagiarism-ai-detector\src\services\ai_detection\__init__.py" />
+    <Compile Include="plagiarism-ai-detector\src\services\auth_service.py" />
+    <Compile Include="plagiarism-ai-detector\src\services\embedding.py" />
     <Compile Include="plagiarism-ai-detector\src\services\parsers\doc_parser.py" />
     <Compile Include="plagiarism-ai-detector\src\services\parsers\__init__.py" />
+    <Compile Include="plagiarism-ai-detector\src\services\plagiarism\pipeline.py" />
     <Compile Include="plagiarism-ai-detector\src\services\plagiarism\semantic.py" />
     <Compile Include="plagiarism-ai-detector\src\services\plagiarism\winnowing.py" />
     <Compile Include="plagiarism-ai-detector\src\services\plagiarism\__init__.py" />
@@ -57,7 +64,12 @@
     <Compile Include="plagiarism-ai-detector\src\utils\text_cleaner.py" />
     <Compile Include="plagiarism-ai-detector\src\utils\__init__.py" />
     <Compile Include="plagiarism-ai-detector\src\__init__.py" />
+    <Compile Include="plagiarism-ai-detector\test_db_connection.py" />
+    <Compile Include="plagiarism-ai-detector\test_pipeline.py" />
+    <Compile Include="plagiarism-ai-detector\tests\test_auth.py" />
+    <Compile Include="plagiarism-ai-detector\tests\test_full_pipeline.py" />
     <Compile Include="plagiarism-ai-detector\tests\test_plagiarism.py" />
+    <Compile Include="plagiarism-ai-detector\tests\test_self_plagiarism.py" />
     <Compile Include="plagiarism-ai-detector\tests\test_timestamp.py" />
     <Compile Include="plagiarism-ai-detector\tests\__init__.py" />
   </ItemGroup>

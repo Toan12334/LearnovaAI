@@ -1,21 +1,28 @@
 from pydantic import BaseModel, HttpUrl
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from datetime import datetime
 
 
 class MatchDetail(BaseModel):
-    source_url: Optional[str] = None
-    similarity_score: float
+    chunk_id: Optional[str] = None
+    source_type: str = "web"  # 'web' | 'internal_db'
+    matched_url: Optional[str] = None
+    matched_document_id: Optional[str] = None
     matched_text: str
-    match_type: str  # 'exact' (Winnowing) | 'semantic' (Vector DB)
-    published_date: Optional[datetime] = None
+    similarity_score: float
 
 
 class PlagiarismCheckResponse(BaseModel):
-    total_similarity: float
+    document_id: str
+    title: str
+    word_count: int
+    total_chunks: int
+    matched_chunks_count: int
+    plagiarism_score: float
     is_plagiarized: bool
     matches: List[MatchDetail] = []
-    message: str = "Success"
+    status: str = "completed"
+    message: str = "Kiểm tra hoàn tất."
 
 
 class TimestampVerificationResponse(BaseModel):

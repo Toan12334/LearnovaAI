@@ -1,154 +1,152 @@
 import React, { useState } from 'react';
-import { Card } from '../../components/Card';
-import { Modal } from '../../components/Modal';
-import { PlagiarismForm } from './components/PlagiarismForm';
-import { PlagiarismResultTable } from './components/PlagiarismResultTable';
+import { DocumentInput } from './components/DocumentInput';
+import { PlagiarismReportView } from './components/PlagiarismReportView';
 import { TimestampAudit } from './components/TimestampAudit';
 import { plagiarismApi } from '../../services/plagiarismApi';
-import { highlightText } from '../../utils/highlightText';
+import { AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 export function PlagiarismChecker() {
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState(null);
+  const [report, setReport] = useState(null);
+  const [originalText, setOriginalText] = useState('');
   const [auditSource, setAuditSource] = useState(null);
-  const [inspectedText, setInspectedText] = useState(null);
-  const [matches, setMatches] = useState([]);
+  const [apiError, setApiError] = useState(null);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const handleCheck = async (payload) => {
     setIsLoading(true);
+    setApiError(null);
     setAuditSource(null);
+    setStatusMessage('Đang kết nối API Backend và gửi văn bản...');
 
     try {
       let res;
       if (payload.type === 'file') {
-        res = await plagiarismApi.checkDocument(payload.file, {
-          threshold: payload.threshold,
-          language: payload.language,
-        });
+        setStatusMessage('Đang tải file lên và trích xuất nội dung văn bản...');
+        res = await plagiarismApi.checkDocument(payload.file);
+        setOriginalText(`[Tệp đính kèm: ${payload.file.name} - ${(payload.file.size / 1024).toFixed(1)} KB]`);
       } else {
+        setStatusMessage('Đang thực thi pipeline 6 bước (Tách câu, Embeddings, Quét Qdrant & Serper)...');
         res = await plagiarismApi.checkText({
           text: payload.text,
-          threshold: payload.threshold,
-          language: payload.language,
-          checkTimestamp: payload.checkTimestamp,
+          title: payload.title,
+          enable_web_search: payload.enable_web_search,
+          similarity_threshold: payload.similarity_threshold,
         });
+        setOriginalText(payload.text);
       }
-      setResults(res);
-      setInspectedText(payload.text || 'Nội dung tệp đã được bóc tách và phân tích thành công.');
-      setMatches(res.matches || []);
-    } catch {
-      // Backend not yet running - provide rich mock data for presentation & immediate testing
-      const sampleText = payload.text || 'Nội dung tài liệu kiểm tra...';
-      const mockResult = {
-        overallScore: 68,
-        exactMatchScore: 42,
-        semanticScore: 78,
-        totalWords: sampleText.split(/\s+/).length,
-        language: payload.language || 'vi',
-        sources: [
-          {
-            id: 'src-1',
-            title: 'Nghiên cứu ứng dụng Trí tuệ nhân tạo trong Giáo dục đại học',
-            url: 'https://tapchigiaoduc.edu.vn/article/ai-in-education-2023',
-            similarity: 78,
-            snippet: 'Trí tuệ nhân tạo đang định hình lại phương thức giảng dạy và học tập trong kỷ nguyên số...',
-            publishedDate: '2023-04-15T09:00:00Z',
-          },
-          {
-            id: 'src-2',
-            title: 'Tổng quan các thuật toán phát hiện đạo văn hiện đại',
-            url: 'https://vjol.info.vn/index.php/jcs/article/view/84920',
-            similarity: 54,
-            snippet: 'thuật toán Winnowing kết hợp tìm kiếm ngữ nghĩa qua Vector Database...',
-            publishedDate: '2023-10-20T14:15:00Z',
-          },
-          {
-            id: 'src-3',
-            title: 'Truy vết mốc thời gian xuất bản bằng Wayback Machine',
-            url: 'https://khoahoccongnghe.gov.vn/bai-viet/timestamp-archive-check',
-            similarity: 46,
-            snippet: 'việc truy vết dấu mốc thời gian xuất bản đóng vai trò then chốt để xác định ai là tác giả đầu tiên...',
-            publishedDate: '2024-01-10T11:00:00Z',
-          },
-        ],
-        matches: [
-          { start: 0, end: 95, score: 85, sourceUrl: 'https://tapchigiaoduc.edu.vn/article/ai-in-education-2023' },
-          { start: 96, end: 280, score: 72, sourceUrl: 'https://vjol.info.vn/index.php/jcs/article/view/84920' },
-        ],
-      };
 
-      setResults(mockResult);
-      setInspectedText(sampleText);
-      setMatches(mockResult.matches);
+      setReport(res);
+      setStatusMessage('');
+    } catch (err) {
+      console.error('[PlagiarismChecker Error]:', err);
+      setApiError(
+        err.message || 'Không thể kiểm tra đạo văn. Vui lòng kiểm tra lại kết nối đến máy chủ Backend.'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <Card
-        title="🔍 Kiểm tra Đạo văn & Đối soát Nguồn gốc"
-        subtitle="Hỗ trợ phân tích Exact Match (Winnowing) và Semantic Match (Vector Similarity)"
-      >
-        <PlagiarismForm onCheck={handleCheck} isLoading={isLoading} />
-      </Card>
+  const handleBack = () => {
+    setReport(null);
+    setAuditSource(null);
+    setApiError(null);
+  };
 
-      {/* Timestamp Audit Drawer / Section if active */}
-      {auditSource && (
-        <TimestampAudit
-          source={auditSource}
-          onClose={() => setAuditSource(null)}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+      {/* Error Banner if any */}
+      {apiError && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.85rem',
+            backgroundColor: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            color: '#fca5a5',
+          }}
+        >
+          <AlertCircle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: '#f87171', marginBottom: '0.2rem' }}>
+              Lỗi xử lý API Kiểm tra Đạo văn:
+            </div>
+            <div style={{ fontSize: '0.88rem', lineHeight: '1.5' }}>{apiError}</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+              💡 Mẹo: Hãy đảm bảo FastAPI Backend đang chạy tại <code style={{ color: '#818cf8' }}>http://localhost:8000</code> với lệnh <code style={{ color: '#818cf8' }}>uvicorn src.main:app --port 8000</code>.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setApiError(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '1.1rem',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Loading Banner with step info */}
+      {isLoading && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            backgroundColor: 'rgba(79, 124, 255, 0.1)',
+            border: '1px solid rgba(79, 124, 255, 0.3)',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            color: '#cbd5e1',
+          }}
+        >
+          <div
+            style={{
+              width: '22px',
+              height: '22px',
+              border: '2.5px solid rgba(79, 124, 255, 0.2)',
+              borderTopColor: '#4F7CFF',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              flexShrink: 0,
+            }}
+          />
+          <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+            {statusMessage || 'Đang phân tích kiểm tra đạo văn...'}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content: Document Input or Analysis Report */}
+      {!report ? (
+        <DocumentInput onCheck={handleCheck} isLoading={isLoading} />
+      ) : (
+        <PlagiarismReportView
+          report={report}
+          originalText={originalText}
+          onBack={handleBack}
+          onAuditTimestamp={(source) => setAuditSource(source)}
         />
       )}
 
-      {/* Results Section */}
-      {results && (
-        <Card
-          title="📊 Kết quả Phân tích Trùng lặp"
-          subtitle={`Đã đối soát với kho tri thức học thuật và kết quả tìm kiếm web`}
-          badge={
-            <span
-              style={{
-                fontSize: '0.75rem',
-                padding: '0.2rem 0.6rem',
-                borderRadius: '9999px',
-                backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                color: '#818cf8',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-              }}
-            >
-              Hoàn tất
-            </span>
-          }
-        >
-          <PlagiarismResultTable
-            results={results}
-            onAuditTimestamp={(src) => setAuditSource(src)}
-            onSelectSource={() => {}}
+      {/* Timestamp Audit Modal / Section */}
+      {auditSource && (
+        <div style={{ marginTop: '1rem' }}>
+          <TimestampAudit
+            source={auditSource}
+            onClose={() => setAuditSource(null)}
           />
-
-          {/* Text Highlight Preview */}
-          {inspectedText && (
-            <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border, #2e303a)', paddingTop: '1.25rem' }}>
-              <h4 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: '#e0e7ff' }}>
-                📝 Trực quan hóa đoạn văn trùng lặp (Highlighted Matches):
-              </h4>
-              <div
-                style={{
-                  padding: '1.25rem',
-                  borderRadius: '10px',
-                  background: 'var(--input-bg, rgba(0,0,0,0.25))',
-                  border: '1px solid var(--border, #2e303a)',
-                  lineHeight: '1.8',
-                  fontSize: '0.95rem',
-                }}
-              >
-                {highlightText(inspectedText, matches)}
-              </div>
-            </div>
-          )}
-        </Card>
+        </div>
       )}
     </div>
   );

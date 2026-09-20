@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HomePage, HistoryPage, ReportPage } from './pages';
+import { AuthProvider, AuthModal } from './features/auth';
 
-function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedReportId, setSelectedReportId] = useState('REP-2026-001');
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('signin');
+
+  const handleOpenAuth = (mode = 'signin') => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+  };
 
   const handleSelectReport = (reportId) => {
     setSelectedReportId(reportId);
@@ -14,7 +22,11 @@ function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Top Navigation */}
-      <Navbar currentPage={currentPage} onNavigate={(page) => setCurrentPage(page)} />
+      <Navbar
+        currentPage={currentPage}
+        onNavigate={(page) => setCurrentPage(page)}
+        onOpenAuth={handleOpenAuth}
+      />
 
       {/* Main Content Area */}
       <main
@@ -32,6 +44,13 @@ function App() {
           <ReportPage reportId={selectedReportId} onBack={() => setCurrentPage('history')} />
         )}
       </main>
+
+      {/* Auth Modal for Sign In & Sign Up */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        initialMode={authMode}
+        onClose={() => setIsAuthOpen(false)}
+      />
 
       {/* Footer */}
       <footer
@@ -57,6 +76,14 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

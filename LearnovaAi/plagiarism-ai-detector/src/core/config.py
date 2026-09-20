@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Lùi 3 cấp thư mục để tìm về gốc dự án:
@@ -8,6 +8,7 @@ ENV_PATH = BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
+    BASE_DIR: Path = BASE_DIR
     APP_ENV: str = "development"
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
@@ -18,11 +19,22 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://postgres:postgres@localhost:5432/plagiarism_db"
     )
 
+    # Supabase SDK Database
+    SUPABASE_URL: str | None = None
+    SUPABASE_KEY: str | None = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
+
+    # JWT Authentication
+    JWT_SECRET: str = "learnova-ai-super-secret-jwt-key-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15 * 24 * 60  # 15 ngày (21600 phút)
+
     # Qdrant Vector Database
+    QDRANT_URL: str | None = None
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     QDRANT_API_KEY: str | None = None
-    QDRANT_COLLECTION: str = "documents_embedding"
+    QDRANT_COLLECTION: str = "plagiarism_docs"
 
     # Redis Cache
     REDIS_HOST: str = "localhost"
@@ -32,6 +44,12 @@ class Settings(BaseSettings):
     # Search APIs
     SEARCH_API_KEY: str | None = None
     SEARCH_ENGINE_ID: str | None = None
+    SERPER_SEARCH_URL: str = "https://google.serper.dev/search"
+
+    # Embedding & Vector Database
+    EMBEDDING_MODEL: str = "BAAI/bge-m3"
+    VECTOR_SIZE: int = 1024
+    PLAGIARISM_SIMILARITY_THRESHOLD: float = 0.75
 
     # AI Detection Models
     HUGGINGFACE_API_KEY: str | None = None
