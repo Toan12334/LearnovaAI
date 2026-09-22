@@ -20,16 +20,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy dependency files
 COPY requirements.txt ./
 
-# Cài đặt tất cả Python packages (bao gồm torch + transformers + sentence-transformers)
+# Bước 1: Pin NumPy < 2 trước để tránh conflict với PyTorch
+# (PyTorch CPU build được compile với NumPy 1.x API)
+RUN pip install --no-cache-dir "numpy<2"
+
+# Bước 2: Cài PyTorch CPU (không cần CUDA trên server) + kiểm tra NumPy không bị upgrade
 RUN pip install --no-cache-dir \
-    torch==2.2.2 --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir \
-    transformers==4.40.0 \
-    sentence-transformers==3.0.1 \
-    sentencepiece==0.2.0 \
-    tiktoken==0.7.0 \
-    accelerate==0.30.0 \
-    && pip install --no-cache-dir -r requirements.txt
+    "torch==2.3.1" \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Bước 3: Cài các ML libraries (chúng sẽ dùng NumPy + PyTorch đã cài ở trên)
+RUN pip install --no-cache-dir \
+    "transformers==4.41.2" \
+    "sentence-transformers==3.0.1" \
+    "sentencepiece==0.2.0" \
+    "tiktoken==0.7.0" \
+    "accelerate==0.30.0"
+
+# Bước 4: Cài các dependencies còn lại của project
+RUN pip install --no-cache-dir -r requirements.txt
 
 
 # ============================================================
