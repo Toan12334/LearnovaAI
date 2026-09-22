@@ -7,6 +7,12 @@ Chạy: python hf_space/deploy_to_hf.py
 """
 
 import os
+import sys
+
+# Fix Unicode output trên Windows console (cp1252 không hỗ trợ emoji)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 import shutil
 import tempfile
 from pathlib import Path
@@ -42,7 +48,7 @@ def deploy():
         create_repo(
             repo_id=REPO_ID,
             repo_type="space",
-            space_sdk="docker",
+            space_sdk="gradio",     # gradio = free tier, docker = PRO only
             private=False,
             token=HF_TOKEN,
             exist_ok=True,
@@ -54,7 +60,7 @@ def deploy():
     # Upload các file cần thiết lên Space
     files_to_upload = [
         (HF_SPACE_DIR / "README.md",    "README.md"),
-        (HF_SPACE_DIR / "Dockerfile",   "Dockerfile"),
+        (HF_SPACE_DIR / "app.py",       "app.py"),
         (BACKEND_ROOT / "requirements.txt", "requirements.txt"),
     ]
 

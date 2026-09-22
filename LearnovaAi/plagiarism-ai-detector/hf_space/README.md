@@ -1,13 +1,14 @@
 ---
-title: LearnovaAI Plagiarism & AI Detector API
+title: LearnovaAI Plagiarism AI Detector API
 emoji: 🎓
 colorFrom: indigo
 colorTo: purple
-sdk: docker
-app_port: 7860
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
 pinned: false
 license: mit
-short_description: FastAPI backend phát hiện đạo văn và văn bản AI (XLM-RoBERTa + BAAI/bge-m3)
+short_description: Plagiarism & AI text detector API backend
 ---
 
 # 🎓 LearnovaAI — Plagiarism & AI Detector API

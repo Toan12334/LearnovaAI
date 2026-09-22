@@ -1,7 +1,7 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
-# Pin NumPy < 2 — PyTorch CPU build không tương thích với NumPy 2.x
-numpy<2
+# NumPy (2.x OK với PyTorch mới)
+numpy>=1.26.0
 pydantic>=2.6.0
 pydantic-settings>=2.2.0
 qdrant-client>=1.8.0
