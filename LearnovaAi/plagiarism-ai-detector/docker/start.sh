@@ -10,11 +10,11 @@ export TOKENIZERS_PARALLELISM=false
 
 echo "🚀 Khởi động LearnovaAI Backend API..."
 echo "   Cache dir: $HF_HOME"
-echo "   PORT: ${PORT:-8000}"
+echo "   PORT: ${PORT:-8080}"
 echo "   Workers: ${WORKERS:-2}"
 
 exec uvicorn src.main:app \
     --host 0.0.0.0 \
-    --port "${PORT:-8000}" \
+    --port "${PORT:-8080}" \
     --workers "${WORKERS:-2}" \
     --log-level info

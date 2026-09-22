@@ -63,8 +63,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SENTENCE_TRANSFORMERS_HOME=/app/model_cache \
     HF_HUB_DISABLE_TELEMETRY=1 \
     TOKENIZERS_PARALLELISM=false \
-    # Railway tự động inject PORT
-    PORT=8000 \
+    # Railway tự động inject PORT (mặc định 8080 nếu không được set)
+    PORT=8080 \
     WORKERS=2
 
 WORKDIR /app
@@ -83,11 +83,12 @@ COPY docker/start.sh /app/start.sh
 # Đảm bảo script có quyền execute
 RUN chmod +x /app/start.sh
 
-# Railway yêu cầu PORT được expose
-EXPOSE 8000
+# Railway yêu cầu PORT được expose (Railway injects PORT at runtime, default 8080)
+EXPOSE 8080
 
 # Health check để Railway biết app đã sẵn sàng
+# Sử dụng biến PORT tại runtime để khớp với cổng mà uvicorn thực sự lắng nghe
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
 CMD ["/app/start.sh"]
