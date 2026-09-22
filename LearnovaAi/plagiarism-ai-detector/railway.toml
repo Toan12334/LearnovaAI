@@ -1,19 +1,24 @@
 # ==================================================================
-# railway.toml — Cấu hình deploy tự động lên Railway.app
-# Đặt file này ở gốc thư mục plagiarism-ai-detector
+# railway.toml — Cấu hình deploy lên Railway.app
+# File này nằm trong: LearnovaAi/plagiarism-ai-detector/railway.toml
+#
+# QUAN TRỌNG: Trên Railway Dashboard, đặt Root Directory = LearnovaAi/plagiarism-ai-detector
 # ==================================================================
 
 [build]
-# Sử dụng Dockerfile tùy chỉnh (chứa logic preload 2 model AI)
+# Dùng Dockerfile tùy chỉnh (chứa logic preload 2 model AI lúc build)
 builder = "DOCKERFILE"
 dockerfilePath = "docker/Dockerfile"
 
 [deploy]
-# Lệnh health check — Railway dùng để biết app đã sẵn sàng nhận traffic
-healthcheckPath = "/health"
-healthcheckTimeout = 120
+# Lệnh khởi động — Railway inject $PORT tự động
+startCommand = "uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 2"
 
-# Số lần restart tối đa trước khi Railway báo lỗi
+# Health check — Railway dùng để biết app đã sẵn sàng nhận traffic
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+
+# Restart policy
 numReplicas = 1
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+restartPolicyMaxRetries = 5

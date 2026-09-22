@@ -78,10 +78,6 @@ COPY --from=model-downloader /app/model_cache /app/model_cache
 
 # Copy source code
 COPY src/ ./src/
-COPY docker/start.sh /app/start.sh
-
-# Đảm bảo script có quyền execute
-RUN chmod +x /app/start.sh
 
 # Railway yêu cầu PORT được expose
 EXPOSE 8000
@@ -90,4 +86,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-CMD ["/app/start.sh"]
+# Dùng sh -c để Railway có thể inject $PORT qua env var
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WORKERS:-2} --log-level info"]
