@@ -16,6 +16,7 @@ python-jose[cryptography]>=3.3.0
 supabase>=2.31.0
 
 # ML / AI Detection Dependencies
+numpy<2.0.0
 sentence-transformers>=3.0.1
 sentencepiece>=0.2.0
 tiktoken>=0.7.0
