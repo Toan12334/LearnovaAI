@@ -66,15 +66,13 @@ FROM python:3.11-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    # Trỏ HuggingFace cache đến thư mục đã được bake vào image ở Stage 2
+    # HuggingFace cache — trỏ đến model đã bake vào image ở Stage 2
     HF_HOME=/app/model_cache \
     TRANSFORMERS_CACHE=/app/model_cache \
     SENTENCE_TRANSFORMERS_HOME=/app/model_cache \
     HF_HUB_DISABLE_TELEMETRY=1 \
-    TOKENIZERS_PARALLELISM=false \
-    # Railway tự động inject PORT
-    PORT=8000 \
-    WORKERS=2
+    TOKENIZERS_PARALLELISM=false
+    # KHÔNG đặt PORT ở đây — Railway sẽ inject PORT động lúc runtime
 
 WORKDIR /app
 
@@ -88,12 +86,12 @@ COPY --from=model-downloader /app/model_cache /app/model_cache
 # Copy source code
 COPY src/ ./src/
 
-# Railway yêu cầu PORT được expose
-EXPOSE 8000
+# EXPOSE chỉ là documentation — port thực tế do Railway inject qua $PORT
+EXPOSE 8080
 
-# Health check để Railway biết app đã sẵn sàng
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
+# Health check — dùng $PORT từ env, Railway thường dùng 8080
+HEALTHCHECK --interval=30s --timeout=15s --start-period=120s --retries=5 \
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Dùng sh -c để Railway có thể inject $PORT qua env var
-CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WORKERS:-2} --log-level info"]
+# Railway inject $PORT lúc runtime — CMD dùng trực tiếp, fallback 8080
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1 --log-level info"]

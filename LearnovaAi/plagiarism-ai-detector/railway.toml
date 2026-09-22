@@ -11,10 +11,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "docker/Dockerfile"
 
 [deploy]
-# Lệnh khởi động — Railway inject $PORT tự động
-startCommand = "uvicorn src.main:app --host 0.0.0.0 --port $PORT --workers 2"
-
-# Health check — Railway dùng để biết app đã sẵn sàng nhận traffic
+# Railway inject $PORT tự động — không hardcode port ở đây
+# uvicorn sẽ bind vào $PORT từ environment
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 
