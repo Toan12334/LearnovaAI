@@ -1,56 +1,61 @@
 version: '3.8'
 
+# ============================================================
+# LearnovaAI Backend — Docker Compose cho môi trường Production
+# Deploy lên Railway.app bằng cách push lên GitHub và kết nối repo
+# ============================================================
+
 services:
-  app:
+  # --- Backend FastAPI với 2 model AI baked vào image ---
+  api:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: plagiarism_detector_api
+      target: runtime
+    image: learnova-ai-api:latest
+    container_name: learnova_api
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:8000"
     env_file:
       - ../.env
-    depends_on:
-      - postgres
-      - qdrant
-      - redis
-    volumes:
-      - ../src:/app/src
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: plagiarism_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-plagiarism_db}
-    ports:
-      - "5432:5432"
+      # Biến môi trường bổ sung cho production
+      - APP_ENV=production
+      - DEBUG=false
+      - WORKERS=2
+      # HuggingFace cache — trỏ đến thư mục đã bake vào image
+      - HF_HOME=/app/model_cache
+      - TRANSFORMERS_CACHE=/app/model_cache
+      - SENTENCE_TRANSFORMERS_HOME=/app/model_cache
+      - HF_HUB_DISABLE_TELEMETRY=1
+      - TOKENIZERS_PARALLELISM=false
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Dành cho local dev: mount source code để hot-reload
+      # Bỏ dòng này khi build production image thật sự
+      # - ../src:/app/src
+      #
+      # Volume lưu trữ model cache (tùy chọn, dùng thay cho baked-in model)
+      - model_cache:/app/model_cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
+    # Giới hạn tài nguyên (Railway free tier: 8GB RAM, 8 CPU)
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 2G
 
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: plagiarism_qdrant
-    ports:
-      - "6333:6333"
-      - "6334:6334"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: plagiarism_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-
+# ============================================================
+# Volumes
+# ============================================================
 volumes:
-  postgres_data:
-  qdrant_data:
-  redis_data:
+  model_cache:
+    driver: local
+    # Đặt tên để tái sử dụng giữa các lần restart
+    name: learnova_model_cache

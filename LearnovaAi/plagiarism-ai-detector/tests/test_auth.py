@@ -2,11 +2,18 @@
 Test suite for Authentication (SignUp, SignIn, JWT Verification, Profile /me)
 """
 
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 from datetime import timedelta
 import pytest
 from pydantic import ValidationError
 from fastapi.testclient import TestClient
+
+# Đảm bảo thư mục gốc plagiarism-ai-detector nằm trong sys.path
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 from src.main import app
 from src.models.auth import SignUpRequest, SignInRequest
@@ -362,3 +369,9 @@ def test_plagiarism_check_with_auth_token(mock_get_supabase, mock_pipeline_run):
     mock_pipeline_run.assert_called_once()
     _, call_kwargs = mock_pipeline_run.call_args
     assert call_kwargs["user_id"] == user_id
+
+
+if __name__ == "__main__":
+    import pytest
+    sys.exit(pytest.main(["-v", __file__]))
+

@@ -4,9 +4,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>30495e78-51f4-4d37-85c2-ab00d4a12a06</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>plagiarism-ai-detector\tests\test_self_plagiarism.py</StartupFile>
-    <SearchPath>
-    </SearchPath>
+    <StartupFile>plagiarism-ai-detector\test_ai_detector_live.py</StartupFile>
+    <SearchPath>plagiarism-ai-detector</SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>LearnovaAi</Name>
@@ -45,6 +44,7 @@
     <Compile Include="plagiarism-ai-detector\src\services\ai_detection\model_infer.py" />
     <Compile Include="plagiarism-ai-detector\src\services\ai_detection\perplexity.py" />
     <Compile Include="plagiarism-ai-detector\src\services\ai_detection\__init__.py" />
+    <Compile Include="plagiarism-ai-detector\src\services\ai_detector.py" />
     <Compile Include="plagiarism-ai-detector\src\services\auth_service.py" />
     <Compile Include="plagiarism-ai-detector\src\services\embedding.py" />
     <Compile Include="plagiarism-ai-detector\src\services\parsers\doc_parser.py" />
@@ -66,6 +66,8 @@
     <Compile Include="plagiarism-ai-detector\src\__init__.py" />
     <Compile Include="plagiarism-ai-detector\test_db_connection.py" />
     <Compile Include="plagiarism-ai-detector\test_pipeline.py" />
+    <Compile Include="plagiarism-ai-detector\test_ai_detector_live.py" />
+    <Compile Include="plagiarism-ai-detector\tests\test_ai_detector.py" />
     <Compile Include="plagiarism-ai-detector\tests\test_auth.py" />
     <Compile Include="plagiarism-ai-detector\tests\test_full_pipeline.py" />
     <Compile Include="plagiarism-ai-detector\tests\test_plagiarism.py" />

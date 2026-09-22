@@ -1,0 +1,50 @@
+# .gitignore cho plagiarism-ai-detector
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables — KHÔNG commit file .env thật lên GitHub
+.env
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Test / Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+*.pyc
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# HuggingFace model cache (rất nặng, không commit)
+.cache/
+model_cache/
+
+# Docker build context
+*.tar

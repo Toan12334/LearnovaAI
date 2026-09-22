@@ -1,0 +1,19 @@
+# ==================================================================
+# railway.toml — Cấu hình deploy tự động lên Railway.app
+# Đặt file này ở gốc thư mục plagiarism-ai-detector
+# ==================================================================
+
+[build]
+# Sử dụng Dockerfile tùy chỉnh (chứa logic preload 2 model AI)
+builder = "DOCKERFILE"
+dockerfilePath = "docker/Dockerfile"
+
+[deploy]
+# Lệnh health check — Railway dùng để biết app đã sẵn sàng nhận traffic
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+
+# Số lần restart tối đa trước khi Railway báo lỗi
+numReplicas = 1
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

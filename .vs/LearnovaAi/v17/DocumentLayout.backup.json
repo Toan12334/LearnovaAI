@@ -3,16 +3,40 @@
   "WorkspaceRootPath": "D:\\Documents\\0_ToolProject\\LearnovaAi\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_self_plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_self_plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\test_ai_detector_live.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\test_ai_detector_live.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_timestamp.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_timestamp.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_ai_detector.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_ai_detector.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detector.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detector.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_full_pipeline.py||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_full_pipeline.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\perplexity.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\perplexity.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\model_infer.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\model_infer.py||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\__init__.py||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\__init__.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_auth.py||{8B382828-6202-11D1-8870-0000F87579D2}",
@@ -25,10 +49,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}",
       "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile||{8B382828-6202-11D1-8870-0000F87579D2}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_timestamp.py||{8B382828-6202-11D1-8870-0000F87579D2}",
-      "RelativeMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|solutionrelative:LearnovaAi\\plagiarism-ai-detector\\tests\\test_timestamp.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{30495E78-51F4-4D37-85C2-AB00D4A12A06}|LearnovaAi\\LearnovaAi.pyproj|D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\endpoints\\plagiarism.py||{8B382828-6202-11D1-8870-0000F87579D2}",
@@ -130,7 +150,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 323,
-          "SelectedChildIndex": 198,
+          "SelectedChildIndex": 197,
           "Children": [
             {
               "$type": "Bookmark",
@@ -922,32 +942,44 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
+              "Title": "test_ai_detector_live.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\test_ai_detector_live.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\test_ai_detector_live.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\test_ai_detector_live.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\test_ai_detector_live.py",
+              "ViewState": "AgIAAGwAAAAAAAAAAAAAAEkAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-21T09:53:49.985Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "test_ai_detector.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_ai_detector.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_ai_detector.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_ai_detector.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_ai_detector.py",
+              "ViewState": "AgIAAKEAAAAAAAAAAAAAAC4AAABEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-21T09:41:02.92Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "test_auth.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_auth.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_auth.py",
               "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_auth.py",
               "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_auth.py",
-              "ViewState": "AgIAAFoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAAAGYAAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
               "WhenOpened": "2026-09-20T08:36:31.4Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "test_self_plagiarism.py",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_self_plagiarism.py",
-              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_self_plagiarism.py",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_self_plagiarism.py",
-              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_self_plagiarism.py",
-              "ViewState": "AgIAAGoAAAAAAAAAAAAswHIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
-              "WhenOpened": "2026-09-17T07:13:36.375Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 5,
               "Title": "test_full_pipeline.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_full_pipeline.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_full_pipeline.py",
@@ -959,7 +991,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 4,
               "Title": "test_plagiarism.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_plagiarism.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_plagiarism.py",
@@ -971,31 +1003,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "supabase_client.py",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
-              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
-              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
-              "ViewState": "AgIAACQAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
-              "WhenOpened": "2026-09-15T15:20:15.552Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Dockerfile",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
-              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
-              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2026-09-17T12:08:22.921Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 1,
               "Title": "test_timestamp.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\tests\\test_timestamp.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\tests\\test_timestamp.py",
@@ -1007,7 +1015,79 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "perplexity.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\perplexity.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\perplexity.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\perplexity.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\perplexity.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-21T09:16:59.108Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ai_detector.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detector.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detector.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detector.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detector.py",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-21T09:40:30.688Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 8,
+              "Title": "__init__.py (src.services.ai_detection)",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\__init__.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\__init__.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\__init__.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\__init__.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-21T09:33:40.108Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "model_infer.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\model_infer.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\model_infer.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\model_infer.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\ai_detection\\model_infer.py",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-21T09:33:41.427Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "supabase_client.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\supabase_client.py",
+              "ViewState": "AgIAACQAAAAAAAAAAAAAAA0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-09-15T15:20:15.552Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Dockerfile",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\docker\\Dockerfile",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-09-17T12:08:22.921Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
               "Title": "router.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\router.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\router.py",
@@ -1019,7 +1099,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 16,
               "Title": "config.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\core\\config.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\core\\config.py",
@@ -1031,7 +1111,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 14,
               "Title": "test_pipeline.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\test_pipeline.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\test_pipeline.py",
@@ -1043,7 +1123,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 12,
               "Title": "plagiarism.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\endpoints\\plagiarism.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\endpoints\\plagiarism.py",
@@ -1055,7 +1135,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 15,
               "Title": "embedding.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\embedding.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\embedding.py",
@@ -1067,7 +1147,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 17,
               "Title": "main.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\main.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\main.py",
@@ -1079,7 +1159,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 18,
               "Title": "__init__.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\__init__.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\__init__.py",
@@ -1091,7 +1171,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 19,
               "Title": "__init__.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\__init__.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\__init__.py",
@@ -1103,7 +1183,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 20,
               "Title": "qdrant_client.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\qdrant_client.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\qdrant_client.py",
@@ -1115,7 +1195,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 21,
               "Title": "postgres_client.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\db\\postgres_client.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\db\\postgres_client.py",
@@ -1127,7 +1207,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 22,
               "Title": "response.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\models\\response.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\models\\response.py",
@@ -1139,7 +1219,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 23,
               "Title": "timestamp.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\endpoints\\timestamp.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\endpoints\\timestamp.py",
@@ -1151,7 +1231,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 24,
               "Title": "requirements.txt",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\requirements.txt",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\requirements.txt",
@@ -1163,7 +1243,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 25,
               "Title": "pyproject.toml",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\pyproject.toml",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\pyproject.toml",
@@ -1175,7 +1255,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 26,
               "Title": "__init__.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\__init__.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\api\\v1\\__init__.py",
@@ -1187,7 +1267,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 27,
               "Title": "__init__.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\api\\__init__.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\api\\__init__.py",
@@ -1199,7 +1279,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 28,
               "Title": "web_search.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\search\\web_search.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\search\\web_search.py",
@@ -1211,7 +1291,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 29,
               "Title": ".env.example",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\.env.example",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\.env.example",
@@ -1223,7 +1303,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 30,
               "Title": "semantic.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\semantic.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\semantic.py",
@@ -1235,7 +1315,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 31,
               "Title": "winnowing.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\winnowing.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\winnowing.py",
@@ -1247,7 +1327,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 32,
               "Title": "__init__.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\parsers\\__init__.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\parsers\\__init__.py",
@@ -1259,7 +1339,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 28,
+              "DocumentIndex": 33,
               "Title": "doc_parser.py",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\parsers\\doc_parser.py",
               "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\parsers\\doc_parser.py",
@@ -1271,7 +1351,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 29,
+              "DocumentIndex": 34,
               "Title": "aiDetectorApi.js",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\src\\services\\aiDetectorApi.js",
               "RelativeDocumentMoniker": "learnnovaaiui\\src\\services\\aiDetectorApi.js",
@@ -1279,7 +1359,8 @@
               "RelativeToolTip": "learnnovaaiui\\src\\services\\aiDetectorApi.js",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2026-09-14T07:48:43.993Z"
+              "WhenOpened": "2026-09-14T07:48:43.993Z",
+              "EditorCaption": ""
             }
           ]
         },

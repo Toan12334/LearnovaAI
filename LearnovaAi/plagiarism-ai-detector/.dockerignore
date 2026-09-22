@@ -1,0 +1,64 @@
+# .dockerignore — Loại trừ các file không cần thiết khi build Docker image
+# Giúp image nhỏ hơn và build nhanh hơn
+
+# Git và CI
+.git
+.gitignore
+.github
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv
+venv
+env
+.env.local
+.env.development
+
+# IDE configs
+.vscode
+.idea
+*.suo
+*.user
+LearnovaAi.pyproj
+LearnovaAi.sln
+
+# Test files
+tests/
+pytest.ini
+.coverage
+htmlcov/
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Logs
+*.log
+logs/
+
+# Local HuggingFace cache (đừng copy vào Docker context, sẽ nạp trong build)
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp scripts
+test_*.py
+clear_old_models.py
+test_ai_detector_live.py
+test_db_connection.py
+test_pipeline.py
