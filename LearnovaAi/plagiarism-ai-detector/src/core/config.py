@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = 6333
     QDRANT_API_KEY: str | None = None
     QDRANT_COLLECTION: str = "plagiarism_docs"
+    QDRANT_TIMEOUT: float = 30.0
 
     # Redis Cache
     REDIS_HOST: str = "localhost"
@@ -50,9 +51,16 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "BAAI/bge-m3"
     VECTOR_SIZE: int = 1024
     PLAGIARISM_SIMILARITY_THRESHOLD: float = 0.75
+    INTERNET_CACHE_COLLECTION: str = "internet_web_cache"
+    INTERNET_EXACT_THRESHOLD: float = 0.90
+    INTERNET_PARAPHRASE_THRESHOLD: float = 0.78
+    INTERNET_SEARCH_CONCURRENCY: int = 5
+    INTERNET_SCRAPE_CONCURRENCY: int = 8
 
     # AI Detection Models
     HUGGINGFACE_API_KEY: str | None = None
+    PERPLEXITY_MODEL: str = "distilgpt2"
+    AI_DETECTOR_THRESHOLD: float = 0.65
 
     # Chỉ định đường dẫn tuyệt đối tới file .env
     model_config = SettingsConfigDict(

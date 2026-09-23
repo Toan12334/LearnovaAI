@@ -1,12 +1,24 @@
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
-from src.models.request import PlagiarismCheckRequest
-from src.models.response import PlagiarismCheckResponse, MatchDetail
+from src.models.request import InternetPlagiarismRequest, PlagiarismCheckRequest
+from src.models.response import InternetPlagiarismResponse, PlagiarismCheckResponse, MatchDetail
 from src.services.plagiarism.pipeline import plagiarism_pipeline
+from src.services.plagiarism.internet_pipeline import internet_plagiarism_service
 from src.services.parsers.doc_parser import DocumentParser
 from src.core.security import get_optional_current_user
 
 router = APIRouter()
+
+
+@router.post("/check-internet", response_model=InternetPlagiarismResponse,
+             summary="Kiểm tra đạo văn Internet: nguyên văn và diễn đạt lại")
+async def check_internet_plagiarism(payload: InternetPlagiarismRequest):
+    """Search Serper, scrape Web evidence and semantically re-rank results."""
+    try:
+        result = await internet_plagiarism_service.check(payload.text)
+        return InternetPlagiarismResponse(**result)
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail="Internet plagiarism service is temporarily unavailable.") from exc
 
 
 @router.post("/check", response_model=PlagiarismCheckResponse, summary="[GD1] Kiểm tra đạo văn văn bản theo pipeline 6 bước")

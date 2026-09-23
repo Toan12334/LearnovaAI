@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../../../components/Button';
 
 export function AIDetectorForm({ onAnalyze, isLoading = false }) {
   const [text, setText] = useState('');
-  const [modelType, setModelType] = useState('multilingual');
-
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    onAnalyze({ text, modelType });
+    if (text.trim().length < 50) return;
+    onAnalyze({ text, language: 'auto' });
   };
 
   const handleSampleAI = () => {
@@ -23,7 +21,7 @@ export function AIDetectorForm({ onAnalyze, isLoading = false }) {
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: '0.9rem', color: 'var(--text-muted, #9ca3af)' }}>
-          Nhập văn bản cần kiểm định tính tự nhiên (Perplexity & Burstiness):
+          Nhập văn bản cần phân tích bằng RoBERTa:
         </span>
         <button
           type="button"
@@ -73,38 +71,21 @@ export function AIDetectorForm({ onAnalyze, isLoading = false }) {
           }}
         >
           <span>{wordCount} từ</span>
-          <span>Khuyến nghị tối thiểu: 50 từ để đạt độ chính xác cao nhất</span>
+          <span>Tối thiểu 50 ký tự · tối đa 300.000 ký tự</span>
         </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <label style={{ fontSize: '0.85rem', color: 'var(--text-muted, #9ca3af)' }}>
-            Mô hình nhận diện:
-          </label>
-          <select
-            value={modelType}
-            onChange={(e) => setModelType(e.target.value)}
-            style={{
-              padding: '0.45rem 0.75rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border, #2e303a)',
-              background: 'var(--input-bg, #1f2028)',
-              color: 'inherit',
-              fontSize: '0.85rem',
-            }}
-          >
-            <option value="multilingual">Transformer Đa ngôn ngữ (Vi / En)</option>
-            <option value="vi-phobert">PhoBERT Specialized (Tiếng Việt nâng cao)</option>
-          </select>
-        </div>
+        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #9ca3af)' }}>
+          RoBERTa đa ngôn ngữ tự động xử lý tiếng Việt và tiếng Anh.
+        </span>
 
         <Button
           type="submit"
           variant="primary"
           size="md"
           isLoading={isLoading}
-          disabled={!text.trim()}
+          disabled={text.trim().length < 50}
           style={{
             background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
           }}

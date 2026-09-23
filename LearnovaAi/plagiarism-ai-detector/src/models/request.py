@@ -17,9 +17,20 @@ class PlagiarismCheckRequest(BaseModel):
         return res
 
 
+class InternetPlagiarismRequest(BaseModel):
+    """Request for asynchronous Internet plagiarism scanning."""
+
+    text: str = Field(..., min_length=50, max_length=1_500_000,
+                      description="Văn bản cần kiểm tra Internet, hỗ trợ tài liệu 70+ trang.")
+
+
 class TimestampVerificationRequest(BaseModel):
     url: HttpUrl = Field(..., description="Đường dẫn nguồn nghi vấn cần xác minh ngày xuất bản")
 
 
 class AIDetectionRequest(BaseModel):
-    text: str = Field(..., min_length=50, description="Văn bản cần phát hiện nội dung do AI sinh ra")
+    text: str = Field(
+        ..., min_length=50, max_length=300_000,
+        description="Văn bản cần phát hiện nội dung do AI sinh ra (tối đa khoảng 70+ trang).",
+    )
+    language: str = Field(default="auto", pattern="^(auto|vi|en)$", description="Ngôn ngữ văn bản")

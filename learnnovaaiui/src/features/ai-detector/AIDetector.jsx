@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card } from '../../components/Card';
 import { AIDetectorForm } from './components/AIDetectorForm';
 import { AIDetectorResult } from './components/AIDetectorResult';
@@ -7,43 +7,28 @@ import { aiDetectorApi } from '../../services/aiDetectorApi';
 export function AIDetector() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
 
   const handleAnalyze = async (payload) => {
     setIsLoading(true);
+    setError('');
+    setResult(null);
 
     try {
       const res = await aiDetectorApi.detectAI(payload);
       setResult(res);
-    } catch {
-      // Realistic demonstration fallback
-      setTimeout(() => {
-        const sentences = payload.text.split(/(?<=[.!?])\s+/).filter(Boolean);
-        const sentenceAnalysis = sentences.map((s, idx) => ({
-          sentence: s,
-          score: idx % 2 === 0 ? 84 : 32,
-        }));
-
-        setResult({
-          aiProbability: 82,
-          humanProbability: 18,
-          perplexityScore: 14.8,
-          burstinessScore: 18.2,
-          classification: 'AI_GENERATED',
-          sentenceAnalysis,
-        });
-        setIsLoading(false);
-      }, 500);
-      return;
+    } catch (requestError) {
+      setError(requestError.message || 'Không thể phân tích văn bản.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <Card
         title="🤖 Nhận diện Nội dung Sinh bởi Trí tuệ Nhân tạo (AI Detector)"
-        subtitle="Sử dụng Transformer Classifier, chỉ số Perplexity & Burstiness để phân biệt giữa văn bản con người và AI (ChatGPT, Claude, DeepSeek)"
+        subtitle="Sử dụng RoBERTa Transformer Classifier để đánh giá khả năng văn bản do AI tạo ra"
         badge={
           <span
             style={{
@@ -60,12 +45,17 @@ export function AIDetector() {
         }
       >
         <AIDetectorForm onAnalyze={handleAnalyze} isLoading={isLoading} />
+      {error && (
+        <div role="alert" style={{ color: '#fca5a5', fontSize: '0.9rem', marginTop: '1rem' }}>
+          {error}
+        </div>
+      )}
       </Card>
 
       {result && (
         <Card
           title="📈 Báo cáo Định lượng Trí tuệ Nhân tạo"
-          subtitle="Chỉ số tin cậy và phân tích độ biến thiên cấu trúc ngôn ngữ"
+          subtitle="Kết quả RoBERTa theo từng câu và trạng thái tin cậy của checkpoint"
         >
           <AIDetectorResult result={result} />
         </Card>

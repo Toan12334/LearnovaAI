@@ -2,6 +2,6 @@
 Services Package.
 """
 
-from src.services.ai_detector import RobertaDetector
+from src.services.ai_detector import AIDetectorService
 
-__all__ = ["RobertaDetector"]
+__all__ = ["AIDetectorService"]
