@@ -2,14 +2,14 @@ import apiClient from './apiClient';
 
 /**
  * AI Detector API Service
- * Handles RoBERTa AI-generation analysis.
+ * Handles PhoBERT AI-generation analysis (toanoppa10012004/phobert-vietnamese-ai-detector).
  */
 
 export const aiDetectorApi = {
   /**
-   * Analyze text with the backend RoBERTa detector.
+   * Analyze text with the backend PhoBERT AI detector.
    * @param {Object} payload - { text, language }
-   * @returns {Promise<Object>} RoBERTa response with document score and heatmap.
+   * @returns {Promise<Object>} PhoBERT response with document score and heatmap.
    */
   async detectAI({ text, language = 'auto' }) {
     return apiClient.post(

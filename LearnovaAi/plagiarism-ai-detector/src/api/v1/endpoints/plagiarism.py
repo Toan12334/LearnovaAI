@@ -124,3 +124,24 @@ async def check_plagiarism_file(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/history", summary="[GD1] Lấy lịch sử tra cứu của user hiện tại")
+async def get_user_history(
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+):
+    """Lấy danh sách lịch sử kiểm tra của user hiện tại từ DB Supabase."""
+    if not current_user:
+        return {"documents": []}
+
+    user_id = current_user.get("id")
+    try:
+        from src.db.supabase_client import get_supabase_client
+        supabase = get_supabase_client()
+        if supabase:
+            res = supabase.table("documents").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+            return {"documents": res.data or []}
+        return {"documents": []}
+    except Exception as exc:
+        return {"documents": []}
+

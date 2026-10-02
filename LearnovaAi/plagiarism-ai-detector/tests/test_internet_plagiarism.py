@@ -151,7 +151,7 @@ class FakeMatcher:
 
 
 class FakeCache:
-    async def search(self, vector):
+    async def search(self, vector, limit: int = 3):
         return []
 
     async def store(self, pages, matcher):

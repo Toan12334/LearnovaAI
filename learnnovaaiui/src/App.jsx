@@ -20,7 +20,7 @@ function AppContent() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">
       {/* Top Navigation */}
       <Navbar
         currentPage={currentPage}
@@ -29,15 +29,7 @@ function AppContent() {
       />
 
       {/* Main Content Area */}
-      <main
-        style={{
-          flex: 1,
-          maxWidth: '1180px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '2rem 1.5rem 4rem',
-        }}
-      >
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentPage === 'home' && <HomePage />}
         {currentPage === 'history' && <HistoryPage onSelectReport={handleSelectReport} />}
         {currentPage === 'report' && (
@@ -52,26 +44,20 @@ function AppContent() {
         onClose={() => setIsAuthOpen(false)}
       />
 
-      {/* Footer */}
-      <footer
-        style={{
-          borderTop: '1px solid var(--border)',
-          padding: '1.5rem',
-          textAlign: 'center',
-          fontSize: '0.85rem',
-          color: 'var(--text-muted, #9ca3af)',
-          backgroundColor: 'rgba(15, 17, 23, 0.7)',
-        }}
-      >
-        <div style={{ maxWidth: '1180px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {/* Modern Footer */}
+      <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-md py-6 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500">
           <div>
-            LearnovaAI © 2026 • Hệ thống Phát hiện Đạo văn, Truy vết Thời gian & Phân tích AI
+            LearnovaAI © 2026 • Hệ thống Phát hiện Đạo văn & PhoBERT AI Detector
           </div>
-          <div style={{ display: 'flex', gap: '1.25rem' }}>
-            <span>Winnowing Algorithm</span>
-            <span>Vector Qdrant DB</span>
-            <span>Internet Archive API</span>
-            <span>FastAPI Backend</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-slate-400">
+            <span className="hover:text-indigo-600 transition-colors">Winnowing Fingerprinting</span>
+            <span>•</span>
+            <span className="hover:text-indigo-600 transition-colors">Vector Qdrant DB</span>
+            <span>•</span>
+            <span className="hover:text-indigo-600 transition-colors">PhoBERT AI Engine</span>
+            <span>•</span>
+            <span className="hover:text-indigo-600 transition-colors">FastAPI Core</span>
           </div>
         </div>
       </footer>

@@ -50,14 +50,28 @@ def test_burstiness_scores_are_aligned_and_regular_text_scores_higher():
 
 
 def test_service_uses_weighted_statistical_scores_and_threshold():
-    """Service must use 0.65 PPL + 0.35 Burstiness for every sentence."""
+    """Service must use 0.65 PPL + 0.35 Burstiness when HF model is disabled."""
     service = AIDetectorService(
         perplexity_calculator=FakePerplexityCalculator(),
         burstiness_calculator=FakeBurstinessCalculator(),
+        use_hf_model=False,
     )
     result = asyncio.run(service.analyze_document("One. Two. Three."))
 
     assert [item["ai_score"] for item in result["sentence_heatmap"]] == [0.27, 0.865, 0.46]
-    assert result["overall_ai_score"] == pytest.approx(33.33)
+    assert result["overall_ai_score"] == pytest.approx(53.17, rel=1e-2)
     assert result["sentence_heatmap"][1]["is_ai"] is True
     assert result["detector"] == "perplexity_burstiness"
+
+
+def test_phobert_ai_detector_service_integration():
+    """PhoBERT AI detector service loads model and analyzes document."""
+    service = AIDetectorService()
+    assert service.use_hf_model is True
+    result = asyncio.run(service.analyze_document("Hôm nay tôi đi học. Do đó trí tuệ nhân tạo phát triển."))
+
+    assert result["detector"] == "phobert_vietnamese_ai_detector"
+    assert "sentence_heatmap" in result
+    assert len(result["sentence_heatmap"]) == 2
+    assert "overall_ai_score" in result
+

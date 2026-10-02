@@ -12,52 +12,23 @@ export function Button({
   type = 'button',
   ...props
 }) {
-  const baseStyles = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    borderRadius: '8px',
-    fontWeight: '500',
-    cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
-    opacity: disabled || isLoading ? 0.65 : 1,
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    border: '1px solid transparent',
-    outline: 'none',
-    fontFamily: 'inherit',
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-xs font-medium rounded-lg',
+    md: 'px-4 py-2.5 text-sm font-semibold rounded-xl',
+    lg: 'px-6 py-3.5 text-base font-semibold rounded-xl',
   };
 
-  const sizeStyles = {
-    sm: { padding: '0.35rem 0.75rem', fontSize: '0.85rem' },
-    md: { padding: '0.55rem 1.15rem', fontSize: '0.95rem' },
-    lg: { padding: '0.75rem 1.6rem', fontSize: '1.05rem' },
-  };
-
-  const variantStyles = {
-    primary: {
-      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-      color: '#ffffff',
-      boxShadow: '0 2px 8px rgba(79, 70, 229, 0.35)',
-    },
-    secondary: {
-      background: '#2e303a',
-      color: '#f3f4f6',
-      borderColor: '#3e4150',
-    },
-    outline: {
-      background: 'transparent',
-      borderColor: 'currentColor',
-      color: '#6366f1',
-    },
-    danger: {
-      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-      color: '#ffffff',
-      boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
-    },
-    ghost: {
-      background: 'transparent',
-      color: 'inherit',
-    },
+  const variantClasses = {
+    primary:
+      'bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-600 text-white shadow-md shadow-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/35 hover:brightness-110 active:scale-[0.98]',
+    secondary:
+      'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 active:scale-[0.98]',
+    outline:
+      'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50/50 hover:border-indigo-300 shadow-sm active:scale-[0.98]',
+    danger:
+      'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-md shadow-rose-500/25 hover:shadow-lg hover:shadow-rose-500/35 active:scale-[0.98]',
+    ghost:
+      'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]',
   };
 
   return (
@@ -65,30 +36,15 @@ export function Button({
       type={type}
       onClick={onClick}
       disabled={disabled || isLoading}
-      style={{
-        ...baseStyles,
-        ...sizeStyles[size],
-        ...variantStyles[variant],
-      }}
-      className={`app-button btn-${variant} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none select-none ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {isLoading ? (
-        <span
-          style={{
-            width: '1em',
-            height: '1em',
-            border: '2px solid currentColor',
-            borderRightColor: 'transparent',
-            borderRadius: '50%',
-            display: 'inline-block',
-            animation: 'spin 0.75s linear infinite',
-          }}
-        />
+        <span className="w-4 h-4 border-2 border-current border-r-transparent rounded-full animate-spin" />
       ) : (
         icon
       )}
-      {children}
+      <span>{children}</span>
     </button>
   );
 }

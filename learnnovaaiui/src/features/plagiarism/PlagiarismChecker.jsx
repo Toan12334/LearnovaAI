@@ -3,7 +3,9 @@ import { DocumentInput } from './components/DocumentInput';
 import { PlagiarismReportView } from './components/PlagiarismReportView';
 import { TimestampAudit } from './components/TimestampAudit';
 import { plagiarismApi } from '../../services/plagiarismApi';
-import { AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { historyService } from '../../services/historyService';
+import { useAuth } from '../auth';
+import { AlertCircle, RefreshCw, X } from 'lucide-react';
 
 export function PlagiarismChecker() {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,6 +14,7 @@ export function PlagiarismChecker() {
   const [auditSource, setAuditSource] = useState(null);
   const [apiError, setApiError] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const { user } = useAuth();
 
   const handleCheck = async (payload) => {
     setIsLoading(true);
@@ -21,9 +24,11 @@ export function PlagiarismChecker() {
 
     try {
       let res;
+      let checkTitle = 'Văn bản kiểm tra';
       if (payload.type === 'file') {
         setStatusMessage('Đang tải file lên và trích xuất nội dung văn bản...');
         res = await plagiarismApi.checkDocument(payload.file);
+        checkTitle = payload.file.name;
         setOriginalText(`[Tệp đính kèm: ${payload.file.name} - ${(payload.file.size / 1024).toFixed(1)} KB]`);
       } else {
         setStatusMessage('Đang thực thi pipeline 6 bước (Tách câu, Embeddings, Quét Qdrant & Serper)...');
@@ -33,11 +38,29 @@ export function PlagiarismChecker() {
           enable_web_search: payload.enable_web_search,
           similarity_threshold: payload.similarity_threshold,
         });
+        checkTitle = payload.title || payload.text.slice(0, 50) + '...';
         setOriginalText(payload.text);
       }
 
       setReport(res);
       setStatusMessage('');
+
+      // Auto save to user history
+      const plagScore = res.plagiarism_score ?? 0;
+      historyService.saveCheckResult(
+        {
+          id: res.document_id ? `PLAG-${res.document_id.slice(-6)}` : `PLAG-${Date.now().toString().slice(-6)}`,
+          type: 'plagiarism',
+          title: checkTitle,
+          author: user ? (user.full_name || user.email) : 'Khách',
+          score: plagScore,
+          status: plagScore >= 50 ? 'Trùng lặp cao' : plagScore >= 20 ? 'Cần xem xét' : 'Độc bản an toàn',
+          sourcesCount: res.matches ? res.matches.length : 0,
+          result: res,
+        },
+        user?.id
+      );
+
     } catch (err) {
       console.error('[PlagiarismChecker Error]:', err);
       setApiError(
@@ -55,75 +78,39 @@ export function PlagiarismChecker() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
-      {/* Error Banner if any */}
+    <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+      {/* Error Banner */}
       {apiError && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '0.85rem',
-            backgroundColor: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            borderRadius: '12px',
-            padding: '1rem 1.25rem',
-            color: '#fca5a5',
-          }}
-        >
-          <AlertCircle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, color: '#f87171', marginBottom: '0.2rem' }}>
-              Lỗi xử lý API Kiểm tra Đạo văn:
-            </div>
-            <div style={{ fontSize: '0.88rem', lineHeight: '1.5' }}>{apiError}</div>
-            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.5rem' }}>
-              💡 Mẹo: Hãy đảm bảo FastAPI Backend đang chạy tại <code style={{ color: '#818cf8' }}>http://localhost:8000</code> với lệnh <code style={{ color: '#818cf8' }}>uvicorn src.main:app --port 8000</code>.
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-bold text-rose-900 mb-1">
+                Lỗi xử lý API Kiểm tra Đạo văn:
+              </h4>
+              <p className="text-sm font-medium leading-relaxed">{apiError}</p>
+              <p className="text-xs text-rose-600/80 mt-2 font-medium">
+                💡 Hãy đảm bảo FastAPI Backend đang chạy tại <code className="bg-rose-100 px-1.5 py-0.5 rounded font-mono text-rose-900">http://localhost:8000</code>.
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setApiError(null)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              fontSize: '1.1rem',
-            }}
+            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-rose-100/50 transition-colors cursor-pointer"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Loading Banner with step info */}
       {isLoading && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            backgroundColor: 'rgba(79, 124, 255, 0.1)',
-            border: '1px solid rgba(79, 124, 255, 0.3)',
-            borderRadius: '12px',
-            padding: '1rem 1.25rem',
-            color: '#cbd5e1',
-          }}
-        >
-          <div
-            style={{
-              width: '22px',
-              height: '22px',
-              border: '2.5px solid rgba(79, 124, 255, 0.2)',
-              borderTopColor: '#4F7CFF',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>
-            {statusMessage || 'Đang phân tích kiểm tra đạo văn...'}
-          </div>
+        <div className="p-4 rounded-2xl bg-indigo-50/90 border border-indigo-200 text-indigo-900 flex items-center gap-3 shadow-md shadow-indigo-500/5">
+          <RefreshCw className="w-5 h-5 text-indigo-600 animate-spin shrink-0" />
+          <span className="text-sm font-semibold">
+            {statusMessage || 'Đang thực thi quy trình kiểm tra đạo văn...'}
+          </span>
         </div>
       )}
 
@@ -141,7 +128,7 @@ export function PlagiarismChecker() {
 
       {/* Timestamp Audit Modal / Section */}
       {auditSource && (
-        <div style={{ marginTop: '1rem' }}>
+        <div className="mt-4">
           <TimestampAudit
             source={auditSource}
             onClose={() => setAuditSource(null)}

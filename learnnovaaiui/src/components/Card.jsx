@@ -6,56 +6,30 @@ export function Card({
   children,
   action,
   className = '',
-  style = {},
   badge = null,
 }) {
   return (
     <div
-      className={`app-card ${className}`}
-      style={{
-        background: 'var(--card-bg, rgba(255, 255, 255, 0.8))',
-        backdropFilter: 'blur(12px)',
-        border: '1px solid var(--border, #e5e4e7)',
-        borderRadius: '16px',
-        padding: '1.5rem',
-        boxShadow: 'var(--shadow, 0 4px 20px rgba(0, 0, 0, 0.05))',
-        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-        ...style,
-      }}
+      className={`bg-white/90 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-xl shadow-slate-200/50 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-200/80 ${className}`}
     >
       {(title || subtitle || action || badge) && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            marginBottom: '1rem',
-            borderBottom: '1px solid var(--border-subtle, rgba(229, 228, 231, 0.5))',
-            paddingBottom: '0.75rem',
-          }}
-        >
+        <div className="flex items-start justify-between mb-5 pb-4 border-b border-slate-100 gap-4">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="flex items-center flex-wrap gap-2.5">
               {title && (
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 600 }}>
+                <h3 className="text-xl font-bold text-slate-800 tracking-tight">
                   {title}
                 </h3>
               )}
               {badge}
             </div>
             {subtitle && (
-              <p
-                style={{
-                  margin: '0.25rem 0 0',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted, #6b6375)',
-                }}
-              >
+              <p className="mt-1 text-sm text-slate-500 font-medium leading-relaxed">
                 {subtitle}
               </p>
             )}
           </div>
-          {action && <div>{action}</div>}
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
       <div className="card-content">{children}</div>
