@@ -29,6 +29,19 @@ except (ImportError, ModuleNotFoundError):
     sys.modules["websockets.asyncio"] = _asyncio_mod
     sys.modules["websockets.asyncio.client"] = _client_mod
 
+# ── ZeroGPU Startup Hook ───────────────────────────────────────────────────
+try:
+    import spaces
+
+    @spaces.GPU
+    def _zero_gpu_init():
+        """Dummy GPU function executed during startup so ZeroGPU detects @spaces.GPU."""
+        return True
+
+    _zero_gpu_init()
+except Exception:
+    pass
+
 # ── Normal imports after patch ───────────────────────────────────────────────
 from pathlib import Path
 
