@@ -24,7 +24,7 @@ except ImportError:
 
 # Đảm bảo HF_TOKEN được set ở cấp process-level để tránh unauthenticated requests
 _HF_TOKEN = settings.HF_TOKEN or settings.HUGGINGFACE_API_KEY
-if _HF_TOKEN:
+if _HF_TOKEN and not _HF_TOKEN.startswith("your_"):
     os.environ.setdefault("HF_TOKEN", _HF_TOKEN)
     os.environ.setdefault("HUGGINGFACE_TOKEN", _HF_TOKEN)
     try:
@@ -53,7 +53,7 @@ class AIDetectorService:
         self.token = token or settings.HF_TOKEN or settings.HUGGINGFACE_API_KEY
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         self.chunker = chunker or SmartChunker()
-        self.perplexity_calculator = perplexity_calculator or PerplexityCalculator()
+        self._perplexity_calculator = perplexity_calculator
         self.burstiness_calculator = burstiness_calculator or BurstinessCalculator()
 
         self.tokenizer = None
@@ -65,23 +65,30 @@ class AIDetectorService:
 
         self._try_load_hf_model()
 
+    @property
+    def perplexity_calculator(self) -> Any:
+        if self._perplexity_calculator is None:
+            self._perplexity_calculator = PerplexityCalculator()
+        return self._perplexity_calculator
+
     def _try_load_hf_model(self) -> None:
         if self.use_hf_model and self.model is not None and self.tokenizer is not None:
             return
+        auth_token = self.token if (self.token and not self.token.startswith("your_")) else None
         try:
             logger.info("Đang nạp mô hình Hugging Face PhoBERT AI Detector: %s", self.model_name)
             try:
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=self.token or None)
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=auth_token if auth_token else False)
             except Exception:
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=None)
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=False)
 
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
 
             try:
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=self.token or None)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=auth_token if auth_token else False)
             except Exception:
-                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=None)
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=False)
 
             self.model.to(self.device)
             self.model.eval()

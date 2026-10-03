@@ -29,10 +29,10 @@ class PerplexityCalculator:
         self.model_name = model_name or settings.PERPLEXITY_MODEL
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=False)
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.model = AutoModelForCausalLM.from_pretrained(self.model_name)
+            self.model = AutoModelForCausalLM.from_pretrained(self.model_name, token=False)
             self.model.to(self.device)
             self.model.eval()
         except Exception as exc:
