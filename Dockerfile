@@ -12,10 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy backend requirements and install CPU PyTorch & requirements
+# Upgrade pip, setuptools, wheel to avoid build isolation issues
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy backend requirements
 COPY LearnovaAi/plagiarism-ai-detector/requirements.txt .
 
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+# Install CPU PyTorch using --extra-index-url (so PyPI dependencies like flit_core resolve properly)
+RUN pip install --no-cache-dir torch --extra-index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy backend application source code
