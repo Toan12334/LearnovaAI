@@ -1,7 +1,6 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
-# NumPy (2.x OK với PyTorch mới)
-numpy>=1.26.0
+numpy>=1.26.0,<2.0.0
 pydantic>=2.6.0
 pydantic-settings>=2.2.0
 qdrant-client>=1.8.0
@@ -18,19 +17,12 @@ python-docx>=1.1.0
 python-dateutil>=2.9.0
 python-jose[cryptography]>=3.3.0
 supabase>=2.31.0
+websockets>=13.0
 
 # ML / AI Detection Dependencies
-numpy<2.0.0
 sentence-transformers>=3.0.1
 sentencepiece>=0.2.0
 tiktoken>=0.7.0
 accelerate>=0.30.0
 torch>=2.2.0
 transformers>=4.40.0
-gradio>=4.44.0
-huggingface_hub<0.26.0
-websockets>=13.0
-
-# Dev / Test (Railway sẽ bỏ qua các package này nhờ Dockerfile cài riêng)
-pytest>=8.1.1
-pytest-asyncio>=0.23.6
