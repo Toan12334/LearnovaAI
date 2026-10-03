@@ -27,6 +27,7 @@ tiktoken>=0.7.0
 accelerate>=0.30.0
 torch>=2.2.0
 transformers>=4.40.0
+gradio>=4.44.0
 
 # Dev / Test (Railway sẽ bỏ qua các package này nhờ Dockerfile cài riêng)
 pytest>=8.1.1
