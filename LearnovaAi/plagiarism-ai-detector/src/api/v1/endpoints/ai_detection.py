@@ -26,8 +26,8 @@ def generate_summary(overall_ai_score: float, is_reliable: bool) -> str:
     """Generate a summary for the combined statistical signal."""
     if not is_reliable:
         return "Không thể kết luận: không có đủ câu để tạo tín hiệu thống kê AI đáng tin cậy."
-    if overall_ai_score >= 80:
-        return f"Rất cao ({overall_ai_score:.2f}%): văn bản có dấu hiệu mạnh do AI tạo ra."
+    if overall_ai_score >= 75:
+        return f"Cao ({overall_ai_score:.2f}%): văn bản có dấu hiệu mạnh do AI tạo ra."
     if overall_ai_score >= 50:
         return f"Trung bình ({overall_ai_score:.2f}%): một phần văn bản có thể do AI viết."
     if overall_ai_score >= 20:
@@ -62,6 +62,7 @@ async def detect_ai_generated_content(payload: AIDetectionRequest, request: Requ
                 sentence_index=item["sentence_index"], text=item["text"],
                 ai_score=item["ai_score"], human_score=item["human_score"],
                 is_ai=item["is_ai"],
+                sentence_range=item.get("sentence_range"),
                 perplexity_score=item.get("perplexity_score"),
                 burstiness_score=item.get("burstiness_score"),
             )
@@ -87,3 +88,25 @@ async def detect_ai_generated_content(payload: AIDetectionRequest, request: Requ
         )
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail="AI detector is temporarily unavailable.") from exc
+
+
+@router.get("/health", summary="[GD2] Kiểm tra trạng thái model PhoBERT AI Detector")
+async def ai_detector_health():
+    """
+    Trả về trạng thái tải model. Dùng để chẩn đoán khi tỷ lệ AI % bỗng tụt thấp.
+    - model_loaded = true  → đang dùng PhoBERT HF model (kết quả cao, 80-95%)
+    - model_loaded = false → đang dùng thống kê perplexity/burstiness (kết quả thấp hơn, 40-60%)
+    """
+    svc = get_ai_detector_service()
+    return {
+        "model_loaded": svc.use_hf_model,
+        "model_name": svc.model_name if svc.use_hf_model else None,
+        "detector_mode": "phobert_hf" if svc.use_hf_model else "statistical_fallback",
+        "tokenizer_ready": svc.tokenizer is not None,
+        "model_weights_ready": svc.model is not None,
+        "device": str(svc.device),
+        "warning": None if svc.use_hf_model else (
+            "MODEL CHƯA LOAD! Đang dùng phương pháp thống kê dự phòng. "
+            "Khởi động lại server hoặc kiểm tra HF_TOKEN và kết nối mạng."
+        ),
+    }

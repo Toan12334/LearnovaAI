@@ -1,6 +1,7 @@
 """AI detector service based on fine-tuned PhoBERT model (toanoppa10012004/phobert-vietnamese-ai-detector)."""
 
 import asyncio
+import os
 from typing import Any, Dict, List, Optional
 
 import torch
@@ -12,11 +13,24 @@ from src.core.logging import logger
 from src.services.burstiness_service import BurstinessCalculator
 from src.services.chunking_service import SmartChunker
 from src.services.perplexity_service import PerplexityCalculator
+from src.utils.text_cleaner import TextCleaner
 
 try:
     from pyvi import ViTokenizer
 except ImportError:
     ViTokenizer = None
+
+# Đảm bảo HF_TOKEN được set ở cấp process-level để tránh unauthenticated requests
+_HF_TOKEN = settings.HF_TOKEN or settings.HUGGINGFACE_API_KEY
+if _HF_TOKEN:
+    os.environ.setdefault("HF_TOKEN", _HF_TOKEN)
+    os.environ.setdefault("HUGGINGFACE_TOKEN", _HF_TOKEN)
+    try:
+        from huggingface_hub import login as hf_login
+        hf_login(token=_HF_TOKEN, add_to_git_credential=False)
+        logger.info("Đã xác thực Hugging Face Hub thành công với HF_TOKEN.")
+    except Exception as _hf_exc:
+        logger.warning("Không thể đăng nhập HF Hub: %s", _hf_exc)
 
 
 class AIDetectorService:
@@ -47,6 +61,11 @@ class AIDetectorService:
         if use_hf_model is False:
             return
 
+        self._try_load_hf_model()
+
+    def _try_load_hf_model(self) -> None:
+        if self.use_hf_model and self.model is not None and self.tokenizer is not None:
+            return
         try:
             logger.info("Đang nạp mô hình Hugging Face PhoBERT AI Detector: %s", self.model_name)
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=self.token)
@@ -58,10 +77,14 @@ class AIDetectorService:
             self.use_hf_model = True
             logger.info("Đã nạp thành công mô hình PhoBERT AI Detector (%s)", self.device)
         except Exception as exc:
-            logger.warning(
-                "Không thể nạp mô hình HF PhoBERT '%s': %s. Sẽ dùng phương pháp thống kê dự phòng.",
+            logger.error(
+                "[AI DETECTOR] KHÔNG THỂ nạp mô hình HF PhoBERT '%s': %s.\n"
+                ">>> Hệ thống sẽ dùng phương pháp thống kê dự phòng (perplexity/burstiness).\n"
+                ">>> ĐÂY LÀ NGUYÊN NHÂN KHIẾN TỶ LỆ % AI PHÁT HIỆN BỊ TỤT THẤP!\n"
+                ">>> Kiểm tra: kết nối mạng, HF_TOKEN hợp lệ, tên model đúng.",
                 self.model_name,
                 exc,
+                exc_info=True,
             )
             self.use_hf_model = False
 
@@ -184,7 +207,9 @@ class AIDetectorService:
     async def analyze_document(self, text: str) -> Dict[str, Any]:
         """Analyze document using PhoBERT model with 2-3 sentence passage grouping for context-rich heatmap."""
         try:
+            text = TextCleaner.clean_extracted_document_text(text)
             sentences = self.chunker.split_into_sentences(text)
+
             if not sentences:
                 return {
                     "overall_ai_score": 0.0,
@@ -204,8 +229,11 @@ class AIDetectorService:
                     "detector": "phobert_vietnamese_ai_detector" if self.use_hf_model else "perplexity_burstiness",
                 }
 
+            if not self.use_hf_model:
+                self._try_load_hf_model()
+
             if self.use_hf_model:
-                # 1. Full document / paragraph inference (matches Google Colab exact document score)
+                # 1. Full document / paragraph inference
                 doc_pred = await asyncio.to_thread(self._predict_document_hf, text)
                 doc_ai_score = doc_pred["ai_score"]
 
@@ -226,10 +254,19 @@ class AIDetectorService:
                     }
                     for p, item in zip(passages, passage_preds)
                 ]
+
+                # 3. Điểm tổng thể khớp 100% với suy luận Colab trên toàn bộ văn bản
+                overall_pct = round(doc_ai_score * 100.0, 2)
+
                 detector_type = "phobert_vietnamese_ai_detector"
                 model_status = "phobert_hf"
-                overall = round(doc_ai_score * 100.0, 2)
+                overall = overall_pct
             else:
+
+
+
+
+
                 # Statistical fallback if HF model is not loaded
                 perplexity_scores, burstiness_scores = await asyncio.gather(
                     self.perplexity_calculator.calculate_sentence_scores_async(sentences),

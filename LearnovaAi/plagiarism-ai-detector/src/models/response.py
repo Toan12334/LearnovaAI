@@ -60,6 +60,7 @@ class SentenceDetail(BaseModel):
     ai_score: float
     human_score: float
     is_ai: Optional[bool]
+    sentence_range: Optional[str] = None
     perplexity_score: Optional[float] = None
     burstiness_score: Optional[float] = None
 

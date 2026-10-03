@@ -97,6 +97,7 @@ export const historyService = {
         score: item.score ?? 0,
         status: item.status || (item.score >= 50 ? 'Cần lưu ý' : 'An toàn'),
         sourcesCount: item.sourcesCount || 0,
+        sourceFile: item.sourceFile || null,
         result: item.result || null,
         user_id: userId,
       };

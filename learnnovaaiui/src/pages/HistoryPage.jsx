@@ -184,10 +184,22 @@ export function HistoryPage({ onSelectReport }) {
                             <div className="font-bold text-slate-800 line-clamp-1">
                               {item.title}
                             </div>
-                            <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                            <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-medium text-indigo-600">{item.id}</span>
                               <span>•</span>
                               <span>{isAI ? 'PhoBERT AI Check' : 'Đối soát Đạo văn'}</span>
+                              {item.sourceFile && (
+                                <>
+                                  <span>•</span>
+                                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border uppercase ${
+                                    item.sourceFile.file_format === 'pdf' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                    item.sourceFile.file_format === 'docx' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                    {item.sourceFile.file_format || 'FILE'}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>

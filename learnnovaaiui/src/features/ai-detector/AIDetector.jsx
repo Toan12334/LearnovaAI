@@ -35,6 +35,7 @@ export function AIDetector() {
           score: aiScore,
           status: aiScore >= 50 ? 'Tín hiệu AI Cao' : 'Nội dung Người viết',
           sourcesCount: 0,
+          sourceFile: payload.sourceFile || null,
           result: res,
         },
         user?.id

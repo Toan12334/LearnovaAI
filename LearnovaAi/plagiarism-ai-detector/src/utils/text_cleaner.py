@@ -43,6 +43,53 @@ class TextCleaner:
         return [s for s in sentences if len(s.strip()) >= min_length]
 
     @staticmethod
+    def clean_extracted_document_text(raw_text: str) -> str:
+        """
+        Chuẩn hóa văn bản trích xuất từ PDF/DOCX hoặc văn bản thô:
+        - Bỏ các ký tự rác hoặc phân cách bảng '|'
+        - Nối các dòng ngắt giữa chừng trong câu (PDF line-wraps)
+        - Loại bỏ khoảng trắng thừa và dòng trống dồn dập.
+        """
+        if not raw_text or not raw_text.strip():
+            return ""
+
+        # Thay thế các dấu phân cách bảng | bằng khoảng trắng
+        text = raw_text.replace(" | ", " ").replace("|", " ")
+
+        # Chuẩn hóa xuống dòng Windows/Mac
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        lines = [line.strip() for line in text.split("\n")]
+        cleaned_paragraphs = []
+        current_para = []
+
+        for line in lines:
+            if not line:
+                if current_para:
+                    cleaned_paragraphs.append(" ".join(current_para))
+                    current_para = []
+                continue
+
+            if not current_para:
+                current_para.append(line)
+            else:
+                prev = current_para[-1]
+                # Nếu dòng trước không kết thúc bằng dấu câu dừng câu và độ dài bình thường -> Nối dòng
+                if prev and prev[-1] not in ".!?:" and len(prev) > 15:
+                    current_para.append(line)
+                else:
+                    cleaned_paragraphs.append(" ".join(current_para))
+                    current_para = [line]
+
+        if current_para:
+            cleaned_paragraphs.append(" ".join(current_para))
+
+        # Ghép lại thành các đoạn văn ngăn cách bằng 2 dấu xuống dòng
+        result = "\n\n".join(p for p in cleaned_paragraphs if p.strip())
+        result = re.sub(r"[ \t\f\v]+", " ", result)
+        return result.strip()
+
+    @staticmethod
     def count_words(text: str) -> int:
         """Đếm tổng số từ trong văn bản."""
         if not text:
