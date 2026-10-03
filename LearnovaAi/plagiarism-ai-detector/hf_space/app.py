@@ -34,11 +34,9 @@ try:
     import spaces
 
     @spaces.GPU
-    def _zero_gpu_init():
-        """Dummy GPU function executed during startup so ZeroGPU detects @spaces.GPU."""
-        return True
-
-    _zero_gpu_init()
+    def _zero_gpu_registered_fn():
+        """Top-level GPU decorated function required by HF ZeroGPU engine."""
+        pass
 except Exception:
     pass
 
