@@ -18,14 +18,17 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 # Copy requirements
 COPY requirements.txt .
 
-# Install CPU PyTorch using --extra-index-url
+# Install CPU PyTorch and backend requirements using CPU extra index url
 RUN pip install --no-cache-dir torch --extra-index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Copy application code
 COPY . .
 
+# Make start.sh executable
+RUN chmod +x ./start.sh
+
 EXPOSE 8000
 
-# Bind dynamically to Railway's $PORT environment variable
-CMD sh -c "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# Start via start.sh to bind to Railway's dynamic $PORT
+CMD ["./start.sh"]
