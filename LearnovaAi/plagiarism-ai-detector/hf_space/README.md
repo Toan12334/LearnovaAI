@@ -8,6 +8,7 @@ sdk_version: 4.44.0
 app_file: app.py
 pinned: false
 short_description: Plagiarism & AI text detector FastAPI backend
+hardware: zero-a10g
 ---
 
 # 🚀 LearnovaAI — Plagiarism & AI Detector API

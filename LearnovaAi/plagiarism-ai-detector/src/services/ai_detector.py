@@ -2,11 +2,16 @@
 
 import asyncio
 import os
+import sys
 from typing import Any, Dict, List, Optional
 
 import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+# Use ZeroGPU-wrapped inference when running on HF Spaces
+_hf_gpu = sys.modules.get("__hf_gpu_inference__")
+_run_gpu_inference = getattr(_hf_gpu, "run_gpu_inference", None)
 
 from src.core.config import settings
 from src.core.logging import logger
@@ -119,44 +124,55 @@ class AIDetectorService:
             })
         return passages
 
-    def _predict_text_hf(self, text: str) -> Dict[str, float]:
-        """Run sequence classification inference on full text context."""
-        if not text or not text.strip() or not self.model or not self.tokenizer:
-            return {"ai_score": 0.0, "human_score": 1.0}
+    def _tokenize(self, texts: List[str]) -> List[str]:
+        """Optional ViTokenizer segmentation for all texts."""
+        segmented = []
+        for text in texts:
+            if ViTokenizer and text.strip():
+                try:
+                    segmented.append(ViTokenizer.tokenize(text.strip()))
+                except Exception:
+                    segmented.append(text.strip())
+            else:
+                segmented.append(text.strip())
+        return segmented
 
-        cleaned = text.strip()
-        if ViTokenizer:
-            try:
-                cleaned = ViTokenizer.tokenize(cleaned)
-            except Exception:
-                pass
-
+    def _predict_batch_local(self, texts: List[str]) -> List[Dict[str, float]]:
+        """Direct torch inference (local dev, no ZeroGPU)."""
+        results: List[Dict[str, float]] = []
         encoded = self.tokenizer(
-            [cleaned], return_tensors="pt", padding=True, truncation=True, max_length=256
+            texts, return_tensors="pt", padding=True, truncation=True, max_length=256
         )
         input_ids = encoded["input_ids"].to(self.device)
         attention_mask = encoded["attention_mask"].to(self.device)
-
         with torch.no_grad():
             outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
             probs = F.softmax(outputs.logits, dim=-1)
+        for i in range(len(texts)):
+            results.append({
+                "ai_score": round(float(probs[i, 1].item()), 4),
+                "human_score": round(float(probs[i, 0].item()), 4),
+            })
+        return results
 
-        human_prob = float(probs[0, 0].item())
-        ai_prob = float(probs[0, 1].item())
-        return {
-            "ai_score": round(ai_prob, 4),
-            "human_score": round(human_prob, 4),
-        }
+    def _predict_text_hf(self, text: str) -> Dict[str, float]:
+        """Run sequence classification inference on a single text."""
+        if not text or not text.strip() or not self.model or not self.tokenizer:
+            return {"ai_score": 0.0, "human_score": 1.0}
+        segmented = self._tokenize([text.strip()])
+        if _run_gpu_inference is not None:
+            preds = _run_gpu_inference(segmented, self.model, self.tokenizer, self.device)
+        else:
+            preds = self._predict_batch_local(segmented)
+        return preds[0] if preds else {"ai_score": 0.0, "human_score": 1.0}
 
     def _predict_document_hf(self, text: str) -> Dict[str, float]:
         """Predict document-level AI/Human probabilities (chunking long text if > 180 words)."""
         if not text or not text.strip():
             return {"ai_score": 0.0, "human_score": 1.0}
-
         words = text.strip().split()
         if len(words) <= 180:
             return self._predict_text_hf(text)
-
         chunks = self.chunker.chunk_text(text, max_tokens=180, overlap_sentences=1)
         chunk_texts = [c["text"] for c in chunks] if chunks else [text]
         chunk_preds = [self._predict_text_hf(t) for t in chunk_texts]
@@ -172,36 +188,14 @@ class AIDetectorService:
         results: List[Dict[str, float]] = []
         if not sentences or not self.model or not self.tokenizer:
             return results
-
-        segmented = []
-        for text in sentences:
-            if ViTokenizer and text.strip():
-                try:
-                    segmented.append(ViTokenizer.tokenize(text.strip()))
-                except Exception:
-                    segmented.append(text.strip())
-            else:
-                segmented.append(text.strip())
-
+        segmented = self._tokenize(sentences)
         for start in range(0, len(segmented), batch_size):
             batch_texts = segmented[start:start + batch_size]
-            encoded = self.tokenizer(
-                batch_texts, return_tensors="pt", padding=True, truncation=True, max_length=256
-            )
-            input_ids = encoded["input_ids"].to(self.device)
-            attention_mask = encoded["attention_mask"].to(self.device)
-
-            with torch.no_grad():
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-                probs = F.softmax(outputs.logits, dim=-1)
-
-            for i in range(len(batch_texts)):
-                human_prob = float(probs[i, 0].item())
-                ai_prob = float(probs[i, 1].item())
-                results.append({
-                    "ai_score": round(ai_prob, 4),
-                    "human_score": round(human_prob, 4),
-                })
+            if _run_gpu_inference is not None:
+                batch_preds = _run_gpu_inference(batch_texts, self.model, self.tokenizer, self.device)
+            else:
+                batch_preds = self._predict_batch_local(batch_texts)
+            results.extend(batch_preds)
         return results
 
     async def analyze_document(self, text: str) -> Dict[str, Any]:
