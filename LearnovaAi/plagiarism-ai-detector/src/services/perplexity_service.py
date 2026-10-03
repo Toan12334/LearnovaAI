@@ -59,12 +59,14 @@ class PerplexityCalculator:
 
         scores = [0.5] * len(sentences)
         valid = [(index, text.strip()) for index, text in enumerate(sentences) if text and text.strip()]
+        # Giới hạn tối đa 6 câu tiêu biểu và max_length=64 để CPU không bị nghẽn làm Railway dính timeout (60s)
+        sample_valid = valid[:6]
         try:
-            for start in range(0, len(valid), batch_size):
-                batch = valid[start:start + batch_size]
+            for start in range(0, len(sample_valid), batch_size):
+                batch = sample_valid[start:start + batch_size]
                 texts = [text for _, text in batch]
                 encoded = self.tokenizer(
-                    texts, return_tensors="pt", padding=True, truncation=True, max_length=256,
+                    texts, return_tensors="pt", padding=True, truncation=True, max_length=64,
                 )
                 input_ids = encoded["input_ids"].to(self.device)
                 attention_mask = encoded["attention_mask"].to(self.device)
@@ -82,6 +84,13 @@ class PerplexityCalculator:
                     if float(length.item()) > 0:
                         perplexity = math.exp(min(float(loss.item()), 20.0))
                         scores[index] = self._ppl_to_ai_score(perplexity)
+            # Gán điểm trung bình cho các câu còn lại vượt quá 6 câu để bảo toàn tốc độ
+            if len(valid) > 6:
+                sample_indices = [idx for idx, _ in sample_valid]
+                computed = [scores[i] for i in sample_indices]
+                avg_val = round(sum(computed) / len(computed), 4) if computed else 0.5
+                for idx, _ in valid[6:]:
+                    scores[idx] = avg_val
             return scores
         except Exception as exc:
             logger.error("Lỗi khi tính perplexity theo batch: %s", exc, exc_info=True)
