@@ -226,7 +226,11 @@ class AIDetectorService:
                 passages = self._group_into_passages(sentences, group_size=3)
                 passage_texts = [p["text"] for p in passages]
                 passage_preds = await asyncio.to_thread(self._predict_sentences_hf, passage_texts)
-                sentence_scores = [item["ai_score"] for item in passage_preds]
+                sentence_scores = [0.0] * len(sentences)
+                for p, item in zip(passages, passage_preds):
+                    for s_idx in range(p["start_sentence_index"], p["end_sentence_index"] + 1):
+                        if s_idx < len(sentence_scores):
+                            sentence_scores[s_idx] = item["ai_score"]
 
                 heatmap = [
                     {

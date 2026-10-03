@@ -17,8 +17,8 @@ async def check_internet_plagiarism(payload: InternetPlagiarismRequest):
     try:
         result = await internet_plagiarism_service.check(payload.text)
         return InternetPlagiarismResponse(**result)
-    except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=503, detail="Internet plagiarism service is temporarily unavailable.") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Lỗi kiểm tra đạo văn Internet: {str(exc)}") from exc
 
 
 @router.post("/check", response_model=PlagiarismCheckResponse, summary="[GD1] Kiểm tra đạo văn văn bản theo pipeline 6 bước")

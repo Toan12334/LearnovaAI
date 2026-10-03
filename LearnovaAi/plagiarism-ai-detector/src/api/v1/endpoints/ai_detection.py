@@ -86,8 +86,8 @@ async def detect_ai_generated_content(payload: AIDetectionRequest, request: Requ
             total_chunks=result["total_chunks"],
             processing_time_ms=round((perf_counter() - started_at) * 1000, 2),
         )
-    except (RuntimeError, ValueError) as exc:
-        raise HTTPException(status_code=503, detail="AI detector is temporarily unavailable.") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý kiểm tra AI: {str(exc)}") from exc
 
 
 @router.get("/health", summary="[GD2] Kiểm tra trạng thái model PhoBERT AI Detector")
