@@ -12,13 +12,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip, setuptools, wheel to avoid build isolation issues
+# Upgrade pip, setuptools, wheel
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Copy backend requirements
 COPY LearnovaAi/plagiarism-ai-detector/requirements.txt .
 
-# Install CPU PyTorch using --extra-index-url (so PyPI dependencies like flit_core resolve properly)
+# Install CPU PyTorch using --extra-index-url
 RUN pip install --no-cache-dir torch --extra-index-url https://download.pytorch.org/whl/cpu && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -27,4 +27,5 @@ COPY LearnovaAi/plagiarism-ai-detector/ .
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Bind dynamically to Railway's $PORT environment variable
+CMD sh -c "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"
