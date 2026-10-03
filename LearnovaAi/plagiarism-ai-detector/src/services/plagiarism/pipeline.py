@@ -26,11 +26,17 @@ from src.services.search.web_search import web_search_service
 
 class PlagiarismPipeline:
     def __init__(self):
-        self.supabase = get_supabase_client()
+        self._supabase = None
         self.cleaner = TextCleaner()
         self.embedder = embedding_service
         self.qdrant = qdrant_service
         self.searcher = web_search_service
+
+    @property
+    def supabase(self):
+        if self._supabase is None:
+            self._supabase = get_supabase_client()
+        return self._supabase
 
     @staticmethod
     def _compute_cosine(v1: List[float], v2: List[float]) -> float:
