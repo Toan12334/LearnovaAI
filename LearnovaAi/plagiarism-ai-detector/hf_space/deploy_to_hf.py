@@ -55,7 +55,8 @@ def deploy():
         )
         print(f"   ✅ Space sẵn sàng: https://huggingface.co/spaces/{REPO_ID}")
     except Exception as e:
-        print(f"   ⚠ Space đã tồn tại hoặc lỗi: {e}")
+        print(f"   ⚠️ Không thể tự động tạo Space qua API: {e}")
+        print(f"   👉 Hãy tạo Space tên '{SPACE_NAME}' trên Web HF trước: https://huggingface.co/new-space")
 
     # Upload các file cần thiết lên Space
     files_to_upload = [
