@@ -47,9 +47,9 @@ class Settings(BaseSettings):
     SEARCH_ENGINE_ID: str | None = None
     SERPER_SEARCH_URL: str = "https://google.serper.dev/search"
 
-    # Embedding & Vector Database
-    EMBEDDING_MODEL: str = "BAAI/bge-m3"
-    VECTOR_SIZE: int = 1024
+    # Embedding & Vector Database (lightweight 118MB multilingual model for fast RAM loading)
+    EMBEDDING_MODEL: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    VECTOR_SIZE: int = 384
     PLAGIARISM_SIMILARITY_THRESHOLD: float = 0.75
     INTERNET_CACHE_COLLECTION: str = "internet_web_cache"
     INTERNET_EXACT_THRESHOLD: float = 0.90
