@@ -58,8 +58,8 @@ class Settings(BaseSettings):
     INTERNET_SCRAPE_CONCURRENCY: int = 8
 
     # AI Detection Models
-    HF_TOKEN: str = "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"
-    HUGGINGFACE_API_KEY: str | None = "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"
+    HF_TOKEN: str | None = None
+    HUGGINGFACE_API_KEY: str | None = None
     AI_DETECTOR_MODEL: str = "toanoppa10012004/phobert-vietnamese-ai-detector"
     PERPLEXITY_MODEL: str = "distilgpt2"
     AI_DETECTOR_THRESHOLD: float = 0.50
