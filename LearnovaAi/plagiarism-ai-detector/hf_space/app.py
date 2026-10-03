@@ -1,13 +1,19 @@
 """
 Hugging Face Spaces entry point - FastAPI on ZeroGPU.
-spaces must be imported at top level (not inside try/except) so ZeroGPU
-static analysis can detect @spaces.GPU decorated functions.
+
+Import order is critical:
+1. websockets.asyncio stub (for supabase realtime)
+2. HfFolder stub into huggingface_hub (ZeroGPU base installs hf_hub>=0.30
+   which removed HfFolder, but gradio==4.44.0 / spaces still imports it)
+3. import spaces  (top-level, required for ZeroGPU static scan)
+4. FastAPI app
 """
 
+import os
 import sys
 import types
 
-# ── Monkey-patch websockets.asyncio FIRST (before any supabase imports) ──────
+# ── 1. Monkey-patch websockets.asyncio FIRST ──────────────────────────────────
 try:
     import websockets.asyncio  # noqa: F401
 except (ImportError, ModuleNotFoundError):
@@ -24,7 +30,35 @@ except (ImportError, ModuleNotFoundError):
     sys.modules["websockets.asyncio"] = _asyncio_mod
     sys.modules["websockets.asyncio.client"] = _client_mod
 
-# ── ZeroGPU: import spaces at module top-level (required for static scan) ────
+# ── 2. Restore HfFolder stub into huggingface_hub before spaces/gradio ────────
+#    ZeroGPU forces:  huggingface_hub >= 0.30 (removed HfFolder)
+#                   + gradio == 4.44.0        (still imports HfFolder)
+#    We inject a minimal stub so the import chain doesn't break.
+import huggingface_hub as _hf_hub  # noqa: E402
+if not hasattr(_hf_hub, "HfFolder"):
+    class _HfFolder:
+        """Minimal stub replacing the removed huggingface_hub.HfFolder."""
+
+        @staticmethod
+        def get_token() -> str | None:
+            return os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+
+        @staticmethod
+        def save_token(token: str) -> None:  # noqa: ARG004
+            pass
+
+        @staticmethod
+        def delete_token() -> None:
+            pass
+
+        @classmethod
+        def path_token(cls) -> str:
+            return os.path.expanduser("~/.cache/huggingface/token")
+
+    _hf_hub.HfFolder = _HfFolder  # type: ignore[attr-defined]
+    sys.modules["huggingface_hub"].HfFolder = _HfFolder  # type: ignore[attr-defined]
+
+# ── 3. Now import spaces (top-level — required for ZeroGPU static scan) ───────
 import spaces  # noqa: E402
 
 
@@ -32,8 +66,8 @@ import spaces  # noqa: E402
 def run_gpu_inference(texts: list, model, tokenizer, device) -> list:
     """
     GPU-accelerated inference wrapper required by HF ZeroGPU.
-    Called by AIDetectorService when running PhoBERT predictions.
-    ZeroGPU grants GPU access only during execution of @spaces.GPU functions.
+    Called by AIDetectorService for PhoBERT predictions.
+    ZeroGPU grants GPU access only during @spaces.GPU function execution.
     """
     import torch
     import torch.nn.functional as F
@@ -50,21 +84,21 @@ def run_gpu_inference(texts: list, model, tokenizer, device) -> list:
     with torch.no_grad():
         outputs = model(input_ids=input_ids, attention_mask=attention_mask)
         probs = F.softmax(outputs.logits, dim=-1)
-    results = []
-    for i in range(len(texts)):
-        results.append({
+    return [
+        {
             "ai_score": round(float(probs[i, 1].item()), 4),
             "human_score": round(float(probs[i, 0].item()), 4),
-        })
-    return results
+        }
+        for i in range(len(texts))
+    ]
 
 
-# ── Expose run_gpu_inference so ai_detector.py can import it ─────────────────
+# Expose so ai_detector.py can import without circular dependency
 sys.modules["__hf_gpu_inference__"] = types.SimpleNamespace(  # type: ignore[attr-defined]
     run_gpu_inference=run_gpu_inference
 )
 
-# ── Normal FastAPI application ────────────────────────────────────────────────
+# ── 4. FastAPI application ────────────────────────────────────────────────────
 from pathlib import Path  # noqa: E402
 
 ROOT = Path(__file__).parent
