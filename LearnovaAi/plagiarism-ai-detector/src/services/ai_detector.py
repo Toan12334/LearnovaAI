@@ -70,10 +70,19 @@ class AIDetectorService:
             return
         try:
             logger.info("Đang nạp mô hình Hugging Face PhoBERT AI Detector: %s", self.model_name)
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=self.token)
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=self.token or None)
+            except Exception:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, token=None)
+
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=self.token)
+
+            try:
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=self.token or None)
+            except Exception:
+                self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, token=None)
+
             self.model.to(self.device)
             self.model.eval()
             self.use_hf_model = True
@@ -81,9 +90,7 @@ class AIDetectorService:
         except Exception as exc:
             logger.error(
                 "[AI DETECTOR] KHÔNG THỂ nạp mô hình HF PhoBERT '%s': %s.\n"
-                ">>> Hệ thống sẽ dùng phương pháp thống kê dự phòng (perplexity/burstiness).\n"
-                ">>> ĐÂY LÀ NGUYÊN NHÂN KHIẾN TỶ LỆ % AI PHÁT HIỆN BỊ TỤT THẤP!\n"
-                ">>> Kiểm tra: kết nối mạng, HF_TOKEN hợp lệ, tên model đúng.",
+                ">>> Hệ thống sẽ dùng phương pháp thống kê dự phòng (perplexity/burstiness).",
                 self.model_name,
                 exc,
                 exc_info=True,
