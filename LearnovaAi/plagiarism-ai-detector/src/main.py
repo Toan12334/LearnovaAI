@@ -22,10 +22,10 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS middleware for Frontend access
+# CORS middleware for Frontend access (dynamic origin matching for credentials support)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
