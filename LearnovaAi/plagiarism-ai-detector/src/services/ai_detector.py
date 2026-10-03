@@ -9,9 +9,6 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-# Use ZeroGPU-wrapped inference when running on HF Spaces
-_hf_gpu = sys.modules.get("__hf_gpu_inference__")
-_run_gpu_inference = getattr(_hf_gpu, "run_gpu_inference", None)
 
 from src.core.config import settings
 from src.core.logging import logger
@@ -160,10 +157,7 @@ class AIDetectorService:
         if not text or not text.strip() or not self.model or not self.tokenizer:
             return {"ai_score": 0.0, "human_score": 1.0}
         segmented = self._tokenize([text.strip()])
-        if _run_gpu_inference is not None:
-            preds = _run_gpu_inference(segmented, self.model, self.tokenizer, self.device)
-        else:
-            preds = self._predict_batch_local(segmented)
+        preds = self._predict_batch_local(segmented)
         return preds[0] if preds else {"ai_score": 0.0, "human_score": 1.0}
 
     def _predict_document_hf(self, text: str) -> Dict[str, float]:
@@ -191,10 +185,7 @@ class AIDetectorService:
         segmented = self._tokenize(sentences)
         for start in range(0, len(segmented), batch_size):
             batch_texts = segmented[start:start + batch_size]
-            if _run_gpu_inference is not None:
-                batch_preds = _run_gpu_inference(batch_texts, self.model, self.tokenizer, self.device)
-            else:
-                batch_preds = self._predict_batch_local(batch_texts)
+            batch_preds = self._predict_batch_local(batch_texts)
             results.extend(batch_preds)
         return results
 
