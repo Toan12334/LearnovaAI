@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from src.models.request import InternetPlagiarismRequest, PlagiarismCheckRequest
@@ -38,7 +39,8 @@ async def check_plagiarism(
     try:
         content = payload.get_content()
         effective_user_id = payload.user_id or (current_user["id"] if current_user else None)
-        result = plagiarism_pipeline.run(
+        result = await asyncio.to_thread(
+            plagiarism_pipeline.run,
             content=content,
             title=payload.title,
             user_id=effective_user_id,
@@ -90,7 +92,8 @@ async def check_plagiarism_file(
             raise HTTPException(status_code=400, detail="Nội dung file quá ngắn hoặc không đọc được văn bản.")
 
         effective_user_id = current_user["id"] if current_user else None
-        result = plagiarism_pipeline.run(
+        result = await asyncio.to_thread(
+            plagiarism_pipeline.run,
             content=extracted_text,
             title=file.filename,
             user_id=effective_user_id,

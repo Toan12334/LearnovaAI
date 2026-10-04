@@ -29,7 +29,9 @@ class EmbeddingService:
             if self._is_sentence_transformer:
                 from sentence_transformers import SentenceTransformer
                 logger.info(f"Đang tải mô hình SentenceTransformer: {self.model_name}...")
-                self._model = SentenceTransformer(self.model_name)
+                hf_token = getattr(settings, "HF_TOKEN", None)
+                valid_token = hf_token if (hf_token and "your_" not in hf_token and len(hf_token) > 10) else False
+                self._model = SentenceTransformer(self.model_name, token=valid_token)
                 logger.info(f"Đã tải thành công mô hình: {self.model_name}")
             else:
                 try:

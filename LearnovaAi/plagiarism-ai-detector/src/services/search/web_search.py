@@ -10,6 +10,16 @@ class WebSearchService:
     def __init__(self):
         self.api_key = settings.SEARCH_API_KEY
         self.api_url = settings.SERPER_SEARCH_URL
+        self._sync_client: Optional[httpx.Client] = None
+
+    @property
+    def sync_client(self) -> httpx.Client:
+        if self._sync_client is None or self._sync_client.is_closed:
+            self._sync_client = httpx.Client(
+                timeout=10.0,
+                limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
+            )
+        return self._sync_client
 
     async def search_query(
         self, query: str, top_k: int = 5
@@ -71,7 +81,7 @@ class WebSearchService:
     def search_query_sync(
         self, query: str, top_k: int = 5
     ) -> List[Dict[str, str]]:
-        """Gửi truy vấn tìm kiếm đồng bộ (Sync)."""
+        """Gửi truy vấn tìm kiếm đồng bộ (Sync) tái sử dụng connection pool."""
         if not self.api_key:
             return []
 
@@ -88,20 +98,19 @@ class WebSearchService:
         }
 
         try:
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(self.api_url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    data = response.json()
-                    results = []
-                    for item in data.get("organic", [])[:top_k]:
-                        results.append(
-                            {
-                                "url": item.get("link", ""),
-                                "title": item.get("title", ""),
-                                "snippet": item.get("snippet", ""),
-                            }
-                        )
-                    return results
+            response = self.sync_client.post(self.api_url, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                results = []
+                for item in data.get("organic", [])[:top_k]:
+                    results.append(
+                        {
+                            "url": item.get("link", ""),
+                            "title": item.get("title", ""),
+                            "snippet": item.get("snippet", ""),
+                        }
+                    )
+                return results
         except Exception as e:
             logger.error(f"Lỗi truy vấn Serper sync: {e}")
         return []

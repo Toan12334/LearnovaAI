@@ -79,7 +79,7 @@ class QdrantService:
                 self.client.create_collection(
                     collection_name=c_name,
                     vectors_config=VectorParams(size=v_size, distance=Distance.COSINE),
-                    timeout=getattr(settings, "QDRANT_TIMEOUT", 30.0),
+                    timeout=int(getattr(settings, "QDRANT_TIMEOUT", 30)),
                 )
                 logger.info(f"Đã khởi tạo Qdrant collection: {c_name} (size={v_size})")
 

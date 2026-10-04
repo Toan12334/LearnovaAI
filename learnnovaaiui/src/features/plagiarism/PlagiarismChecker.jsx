@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { DocumentInput } from './components/DocumentInput';
 import { PlagiarismReportView } from './components/PlagiarismReportView';
 import { TimestampAudit } from './components/TimestampAudit';
@@ -89,9 +89,15 @@ export function PlagiarismChecker() {
                 Lỗi xử lý API Kiểm tra Đạo văn:
               </h4>
               <p className="text-sm font-medium leading-relaxed">{apiError}</p>
-              <p className="text-xs text-rose-600/80 mt-2 font-medium">
-                💡 Hãy đảm bảo FastAPI Backend đang chạy tại <code className="bg-rose-100 px-1.5 py-0.5 rounded font-mono text-rose-900">http://localhost:8000</code>.
-              </p>
+              {import.meta.env.DEV ? (
+                <p className="text-xs text-rose-600/80 mt-2 font-medium">
+                  💡 Hãy đảm bảo FastAPI Backend đang chạy tại <code className="bg-rose-100 px-1.5 py-0.5 rounded font-mono text-rose-900">http://localhost:8000</code>.
+                </p>
+              ) : (
+                <p className="text-xs text-rose-600/80 mt-2 font-medium">
+                  💡 Vui lòng kiểm tra lại đường truyền mạng hoặc thử lại sau ít phút.
+                </p>
+              )}
             </div>
           </div>
           <button

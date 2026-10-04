@@ -11,7 +11,9 @@ Thực hiện trọn vẹn quy trình đối soát đạo văn 6 bước:
 
 import uuid
 import re
-from typing import Any, Dict, List, Optional
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from qdrant_client.http.models import PointStruct
 
@@ -31,6 +33,8 @@ class PlagiarismPipeline:
         self.embedder = embedding_service
         self.qdrant = qdrant_service
         self.searcher = web_search_service
+        self._snippet_cache: Dict[str, List[float]] = {}
+        self._cache_lock = threading.Lock()
 
     @property
     def supabase(self):
@@ -48,6 +52,145 @@ class PlagiarismPipeline:
         if norm_a == 0 or norm_b == 0:
             return 0.0
         return float(np.dot(a, b) / (norm_a * norm_b))
+
+    def _get_snippet_embedding(self, text: str) -> List[float]:
+        """Lấy embedding cho snippet web có bộ nhớ đệm cache thread-safe."""
+        clean = text.strip()
+        if not clean:
+            return []
+        with self._cache_lock:
+            if clean in self._snippet_cache:
+                return self._snippet_cache[clean]
+
+        vec = self.embedder.embed_text(clean)
+        with self._cache_lock:
+            if len(self._snippet_cache) > 2000:
+                self._snippet_cache.clear()
+            self._snippet_cache[clean] = vec
+        return vec
+
+    def _match_single_chunk(
+        self,
+        idx: int,
+        chunk: Dict[str, Any],
+        vector: List[float],
+        document_id: str,
+        user_id: Optional[str],
+        threshold: float,
+        enable_web_search: bool,
+    ) -> Tuple[int, List[Dict[str, Any]]]:
+        """Xử lý quét Qdrant và Serper cho 1 chunk độc lập (Hỗ trợ đa luồng)."""
+        chunk_id = chunk["id"]
+        chunk_text = chunk["content"]
+        chunk_clean = re.sub(r"[^\w\s]", "", chunk_text.lower()).strip()
+        chunk_matches: List[Dict[str, Any]] = []
+
+        # 1. Quét trong Qdrant
+        try:
+            qdrant_results = self.qdrant.search_similar_chunks(
+                query_vector=vector,
+                top_k=3,
+                score_threshold=threshold,
+                exclude_document_id=document_id,
+                exclude_user_id=user_id,
+            )
+            for qr in qdrant_results:
+                qr_content = qr.get("content") or ""
+                qr_clean = re.sub(r"[^\w\s]", "", qr_content.lower()).strip()
+
+                if chunk_clean == qr_clean or (chunk_clean and chunk_clean in qr_clean):
+                    q_sim = 1.0
+                else:
+                    q_sim = round(float(qr["similarity_score"]), 4)
+
+                chunk_matches.append({
+                    "chunk_id": chunk_id,
+                    "source_type": "internal_db",
+                    "matched_document_id": qr["document_id"],
+                    "matched_url": None,
+                    "matched_text": qr_content,
+                    "similarity_score": q_sim,
+                })
+        except Exception as e:
+            logger.warning(f"Lỗi khi quét Qdrant cho câu #{idx}: {e}")
+
+        # 2. Quét qua Serper (Web search)
+        clean_for_search = chunk_text.strip(".,;:!?…'\"-—()[] \t\n")
+        if enable_web_search and len(clean_for_search) >= 8:
+            try:
+                if len(clean_for_search) >= 12:
+                    query_term = f'"{clean_for_search[:80]}"'
+                else:
+                    query_term = clean_for_search
+
+                web_results = self.searcher.search_query_sync(query=query_term, top_k=3)
+
+                if not web_results and len(clean_for_search) > 30:
+                    web_results = self.searcher.search_query_sync(query=clean_for_search[:90], top_k=3)
+
+                if web_results:
+                    best_match = None
+                    best_score = 0.0
+
+                    for web_item in web_results:
+                        title = web_item.get("title", "")
+                        snippet = web_item.get("snippet", "")
+                        if not snippet and not title:
+                            continue
+
+                        combined_source = f"{title} {snippet}"
+                        source_clean = re.sub(r"[^\w\s]", "", combined_source.lower()).strip()
+
+                        is_exact_match = (
+                            chunk_clean in source_clean
+                            or (len(chunk_clean) >= 15 and source_clean in chunk_clean)
+                        )
+
+                        c_words = chunk_clean.split()
+                        s_words = set(source_clean.split())
+                        word_overlap = (
+                            sum(1 for w in c_words if w in s_words) / len(c_words)
+                            if c_words
+                            else 0.0
+                        )
+
+                        # Tối ưu hóa tính điểm tương đồng:
+                        if is_exact_match:
+                            score = 1.0
+                        elif word_overlap >= 0.85:
+                            score = round(min(1.0, 0.90 + (word_overlap - 0.85) * 0.6), 4)
+                        elif word_overlap < 0.20:
+                            score = 0.0
+                        else:
+                            # Chỉ tính vector similarity khi cần thiết
+                            snippet_vec = self._get_snippet_embedding(snippet or title)
+                            sim_score = self._compute_cosine(vector, snippet_vec) if snippet_vec else 0.0
+
+                            if word_overlap >= 0.70:
+                                score = round(max(sim_score, 0.80 + (word_overlap - 0.70) * 0.5), 4)
+                            elif sim_score >= threshold or word_overlap >= 0.50:
+                                score = round(max(sim_score, 0.70 + word_overlap * 0.2), 4)
+                            else:
+                                score = 0.0
+
+                        if is_exact_match or word_overlap >= 0.65 or score >= threshold:
+                            if score > best_score:
+                                best_score = score
+                                best_match = {
+                                    "chunk_id": chunk_id,
+                                    "source_type": "web",
+                                    "matched_document_id": None,
+                                    "matched_url": web_item.get("url"),
+                                    "matched_text": snippet or title,
+                                    "similarity_score": round(best_score, 4),
+                                }
+
+                    if best_match:
+                        chunk_matches.append(best_match)
+            except Exception as e:
+                logger.warning(f"Lỗi khi quét web cho câu #{idx}: {e}")
+
+        return idx, chunk_matches
 
     def run(
         self,
@@ -182,125 +325,38 @@ class PlagiarismPipeline:
         logger.info(f"-> Lưu kho Qdrant: {'Thành công' if upsert_ok else 'Gặp lỗi/Fallback'}")
 
         # -------------------------------------------------------------
-        # BƯỚC 6: Đối soát (Qdrant & Serper) và lưu vào plagiarism_matches
+        # BƯỚC 6: Đối soát (Qdrant & Serper) và lưu vào plagiarism_matches [ĐA LUỒNG]
         # -------------------------------------------------------------
-        logger.info("Bước 6: Đối soát quét trùng lặp qua Qdrant (nội bộ) & Serper (web)...")
+        logger.info("Bước 6: Đối soát quét trùng lặp qua Qdrant (nội bộ) & Serper (web) [ĐA LUỒNG]...")
         all_matches: List[Dict[str, Any]] = []
         matched_chunk_indices = set()
 
-        for idx, (chunk, vector) in enumerate(zip(saved_chunks, vectors)):
-            chunk_id = chunk["id"]
-            chunk_text = chunk["content"]
-            chunk_clean = re.sub(r"[^\w\s]", "", chunk_text.lower()).strip()
+        max_workers = min(10, max(1, len(saved_chunks)))
+        logger.info(f"-> Kích hoạt ThreadPoolExecutor với {max_workers} luồng xử lý song song.")
 
-            # 6.1: Quét trong Qdrant (Đối soát nội bộ với các bài viết khác, loại trừ chính bài này và các bài cũ của user_id)
-            qdrant_results = self.qdrant.search_similar_chunks(
-                query_vector=vector,
-                top_k=3,
-                score_threshold=threshold,
-                exclude_document_id=document_id,
-                exclude_user_id=user_id,
-            )
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_chunk = {
+                executor.submit(
+                    self._match_single_chunk,
+                    idx,
+                    chunk,
+                    vector,
+                    document_id,
+                    user_id,
+                    threshold,
+                    enable_web_search,
+                ): idx
+                for idx, (chunk, vector) in enumerate(zip(saved_chunks, vectors))
+            }
 
-            for qr in qdrant_results:
-                matched_chunk_indices.add(idx)
-                qr_content = qr.get("content") or ""
-                qr_clean = re.sub(r"[^\w\s]", "", qr_content.lower()).strip()
-
-                # Nếu giống hệt nội dung chữ (bỏ qua dấu câu), cho điểm tuyệt đối 1.0 (100%)
-                if chunk_clean == qr_clean or (chunk_clean and chunk_clean in qr_clean):
-                    q_sim = 1.0
-                else:
-                    q_sim = round(float(qr["similarity_score"]), 4)
-
-                match_record = {
-                    "chunk_id": chunk_id,
-                    "source_type": "internal_db",
-                    "matched_document_id": qr["document_id"],
-                    "matched_url": None,
-                    "matched_text": qr_content,
-                    "similarity_score": q_sim,
-                }
-                all_matches.append(match_record)
-
-            # 6.2: Quét qua Serper (Đối soát trực tuyến với các trang web)
-            clean_for_search = chunk_text.strip(".,;:!?…'\"-—()[] \t\n")
-            if enable_web_search and len(clean_for_search) >= 8:
+            for future in as_completed(future_to_chunk):
                 try:
-                    # Trích xuất đoạn truy vấn tiêu biểu từ câu (lọc sạch dấu câu ở đuôi để Google không bị lệch)
-                    if len(clean_for_search) >= 12:
-                        query_term = f'"{clean_for_search[:80]}"'
-                    else:
-                        query_term = clean_for_search
-
-                    web_results = self.searcher.search_query_sync(query=query_term, top_k=3)
-
-                    # Nếu tìm kiếm ngoặc kép không có kết quả và câu dài, thử tìm không ngoặc kép
-                    if not web_results and len(clean_for_search) > 30:
-                        web_results = self.searcher.search_query_sync(query=clean_for_search[:90], top_k=3)
-
-                    if web_results:
-                        best_match = None
-                        best_score = 0.0
-
-                        for web_item in web_results:
-                            title = web_item.get("title", "")
-                            snippet = web_item.get("snippet", "")
-                            if not snippet and not title:
-                                continue
-
-                            combined_source = f"{title} {snippet}"
-                            source_clean = re.sub(r"[^\w\s]", "", combined_source.lower()).strip()
-
-                            # 1. Kiểm tra Exact Match (nguyên văn không dấu câu)
-                            is_exact_match = (
-                                chunk_clean in source_clean
-                                or (len(chunk_clean) >= 15 and source_clean in chunk_clean)
-                            )
-
-                            # 2. Word overlap (đo tỷ lệ trùng từ thực tế)
-                            c_words = chunk_clean.split()
-                            s_words = set(source_clean.split())
-                            word_overlap = (
-                                sum(1 for w in c_words if w in s_words) / len(c_words)
-                                if c_words
-                                else 0.0
-                            )
-
-                            # 3. Vector semantic similarity
-                            snippet_vec = self.embedder.embed_text(snippet or title)
-                            sim_score = self._compute_cosine(vector, snippet_vec)
-
-                            # Quyết định điểm tương đồng chính xác:
-                            if is_exact_match:
-                                score = 1.0  # Trùng khớp 100% nguyên văn trên web!
-                            elif word_overlap >= 0.85:
-                                score = round(min(1.0, 0.90 + (word_overlap - 0.85) * 0.6), 4)
-                            elif word_overlap >= 0.70:
-                                score = round(max(sim_score, 0.80 + (word_overlap - 0.70) * 0.5), 4)
-                            elif sim_score >= threshold or word_overlap >= 0.50:
-                                score = round(max(sim_score, 0.70 + word_overlap * 0.2), 4)
-                            else:
-                                score = 0.0
-
-                            # Ghi nhận match nếu là trùng khớp rõ ràng hoặc vượt ngưỡng
-                            if is_exact_match or word_overlap >= 0.65 or score >= threshold:
-                                if score > best_score:
-                                    best_score = score
-                                    best_match = {
-                                        "chunk_id": chunk_id,
-                                        "source_type": "web",
-                                        "matched_document_id": None,
-                                        "matched_url": web_item.get("url"),
-                                        "matched_text": snippet or title,
-                                        "similarity_score": round(best_score, 4),
-                                    }
-
-                        if best_match:
-                            matched_chunk_indices.add(idx)
-                            all_matches.append(best_match)
-                except Exception as e:
-                    logger.warning(f"Lỗi khi quét web cho câu #{idx}: {e}")
+                    c_idx, c_matches = future.result()
+                    if c_matches:
+                        matched_chunk_indices.add(c_idx)
+                        all_matches.extend(c_matches)
+                except Exception as exc:
+                    logger.error(f"Lỗi worker thread đối soát câu: {exc}")
 
         # Ghi các kết quả trùng lặp vào bảng plagiarism_matches (nếu có)
         if all_matches:

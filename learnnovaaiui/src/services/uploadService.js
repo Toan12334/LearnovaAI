@@ -1,10 +1,9 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+import apiClient from './apiClient';
 
 export const uploadService = {
   /**
-   * Upload file Word (.docx), PDF (.pdf), hoặc TXT (.txt) để trích xuất nội dung
+   * Upload file Word (.docx), PDF (.pdf), hoặc TXT (.txt) để trích xuất nội dung.
+   * Sử dụng apiClient tập trung để tự động trỏ đúng môi trường (Localhost vs Railway).
    * @param {File} file 
    * @returns {Promise<Object>} Metadata & extracted text
    */
@@ -12,13 +11,7 @@ export const uploadService = {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await axios.post(`${API_BASE_URL}/api/v1/upload/parse`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
+    return apiClient.postFormData('/api/v1/upload/parse', formData);
   },
 };
 

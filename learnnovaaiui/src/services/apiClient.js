@@ -1,15 +1,14 @@
 import axios from 'axios';
+import { API_BASE_URL, IS_DEVELOPMENT } from '../config/apiConfig';
 
 /**
  * Base API Client for LearnovaAI using Axios
- * Connects to FastAPI Backend at VITE_API_URL (default: http://127.0.0.1:8000)
+ * Connects to FastAPI Backend at API_BASE_URL (Localhost vs Railway Production)
  */
-
-// Ưu tiên 127.0.0.1 thay vì localhost để tránh lỗi phân giải IPv6 (::1) trên Windows
-const BASE_URL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000').replace('localhost', '127.0.0.1');
+const BASE_URL = API_BASE_URL;
 
 const axiosInstance = axios.create({
-  baseURL: BASE_URL.replace(/\/+$/, ''),
+  baseURL: BASE_URL,
   timeout: 300000, // 5 phút (đủ thời gian cho lần đầu tải mô hình Embedding FastEmbed & quét Serper)
   headers: {
     'Accept': 'application/json',
@@ -61,7 +60,9 @@ axiosInstance.interceptors.response.use(
     }
     // 3. Không nhận được phản hồi (Backend chưa chạy, hoặc lỗi CORS/Network)
     else if (error.request) {
-      message = `Không thể kết nối đến máy chủ Backend tại ${BASE_URL}. Hãy chắc chắn rằng Backend đang chạy trên cổng 8000 (uvicorn src.main:app --port 8000).`;
+      message = IS_DEVELOPMENT
+        ? `Không thể kết nối đến máy chủ Backend tại ${BASE_URL}. Hãy chắc chắn rằng Backend đang chạy trên cổng 8000 (uvicorn src.main:app --port 8000).`
+        : `Không thể kết nối đến máy chủ Backend (${BASE_URL}). Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau ít phút.`;
     }
     // 4. Lỗi khác
     else if (error.message) {
@@ -81,6 +82,7 @@ axiosInstance.interceptors.response.use(
 
 export const apiClient = {
   instance: axiosInstance,
+  baseURL: BASE_URL,
 
   get(endpoint, config = {}) {
     return axiosInstance.get(endpoint, config);
