@@ -120,7 +120,7 @@ class AuthService:
         access_token = None
         requires_email_confirmation = False
 
-        if res.session:
+        if (res and getattr(res, "session", None)) or admin_client:
             expires_seconds = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
             access_token = create_access_token(
                 data={

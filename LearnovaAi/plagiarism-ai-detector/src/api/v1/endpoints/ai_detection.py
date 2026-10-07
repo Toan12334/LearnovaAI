@@ -26,9 +26,11 @@ def generate_summary(overall_ai_score: float, is_reliable: bool) -> str:
     """Generate a summary for the combined statistical signal."""
     if not is_reliable:
         return "Không thể kết luận: không có đủ câu để tạo tín hiệu thống kê AI đáng tin cậy."
-    if overall_ai_score >= 75:
-        return f"Cao ({overall_ai_score:.2f}%): văn bản có dấu hiệu mạnh do AI tạo ra."
-    if overall_ai_score >= 50:
+    if overall_ai_score >= 80:
+        return f"Rất cao ({overall_ai_score:.2f}%): văn bản có dấu hiệu rất mạnh do AI tạo ra."
+    if overall_ai_score >= 60:
+        return f"Cao ({overall_ai_score:.2f}%): văn bản có dấu hiệu do AI tạo ra."
+    if overall_ai_score >= 40:
         return f"Trung bình ({overall_ai_score:.2f}%): một phần văn bản có thể do AI viết."
     if overall_ai_score >= 20:
         return f"Thấp ({overall_ai_score:.2f}%): phần lớn văn bản có dấu hiệu do con người viết."

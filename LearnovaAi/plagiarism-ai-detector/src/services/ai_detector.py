@@ -59,8 +59,9 @@ class AIDetectorService:
         self.tokenizer = None
         self.model = None
         self.use_hf_model = False
+        self._disable_hf = (use_hf_model is False)
 
-        if use_hf_model is False:
+        if self._disable_hf:
             return
 
         self._try_load_hf_model()
@@ -228,7 +229,7 @@ class AIDetectorService:
                     "detector": "phobert_vietnamese_ai_detector" if self.use_hf_model else "perplexity_burstiness",
                 }
 
-            if not self.use_hf_model:
+            if not self.use_hf_model and not getattr(self, "_disable_hf", False):
                 self._try_load_hf_model()
 
             if self.use_hf_model:

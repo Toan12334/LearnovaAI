@@ -19,7 +19,7 @@ export const getApiBaseUrl = () => {
 
   // 2. Tự động fallback dựa theo chế độ Vite (PROD vs DEV)
   if (import.meta.env.PROD) {
-    return 'https://learnovaai-production-8fe5.up.railway.app';
+    return 'http://103.178.235.88:8000';
   }
 
   return 'http://127.0.0.1:8000';
