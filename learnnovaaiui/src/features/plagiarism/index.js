@@ -4,3 +4,4 @@ export { PlagiarismReportView } from './components/PlagiarismReportView';
 export { PlagiarismForm } from './components/PlagiarismForm';
 export { PlagiarismResultTable } from './components/PlagiarismResultTable';
 export { TimestampAudit } from './components/TimestampAudit';
+export { SideBySideDiffModal } from './components/SideBySideDiffModal';

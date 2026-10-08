@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Activity,
   BarChart2,
@@ -10,7 +10,10 @@ import {
   ShieldAlert,
   Clock,
   Layers,
+  Columns,
+  Eye,
 } from 'lucide-react';
+import { SideBySideDiffModal } from './SideBySideDiffModal';
 
 export function PlagiarismReportView({
   report,
@@ -19,6 +22,14 @@ export function PlagiarismReportView({
   onAuditTimestamp,
 }) {
   if (!report) return null;
+
+  const [diffModalOpen, setDiffModalOpen] = useState(false);
+  const [selectedDiffIndex, setSelectedDiffIndex] = useState(0);
+
+  const openDiffModal = (index = 0) => {
+    setSelectedDiffIndex(index);
+    setDiffModalOpen(true);
+  };
 
   const {
     document_id = 'N/A',
@@ -118,27 +129,53 @@ export function PlagiarismReportView({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onBack}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.55rem 1rem',
-            borderRadius: '10px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            backgroundColor: 'rgba(21, 28, 47, 0.8)',
-            color: '#cbd5e1',
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <ArrowLeft size={16} />
-          <span>Quay lại kiểm tra bài khác</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          {matches.length > 0 && (
+            <button
+              type="button"
+              onClick={() => openDiffModal(0)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.55rem 1rem',
+                borderRadius: '10px',
+                border: '1px solid rgba(99, 102, 241, 0.4)',
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                color: '#c7d2fe',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Columns size={16} />
+              <span>Đối chiếu song song ({matches.length})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.55rem 1rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              backgroundColor: 'rgba(21, 28, 47, 0.8)',
+              color: '#cbd5e1',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Quay lại</span>
+          </button>
+        </div>
       </div>
 
       {/* Top 4 Stats Cards */}
@@ -439,16 +476,22 @@ export function PlagiarismReportView({
                   originalText
                 ) : (
                   <span>
-                    Các đoạn văn bản đã được đối chiếu: {matches.map((m, idx) => (
+                    Các đoạn văn bản đã được đối chiếu (nhấp để xem đối chiếu song song): {matches.map((m, idx) => (
                       <span
                         key={idx}
+                        onClick={() => openDiffModal(idx)}
                         style={{
                           backgroundColor: m.source_type === 'web' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)',
                           color: m.source_type === 'web' ? '#fca5a5' : '#fde047',
-                          padding: '0.1rem 0.35rem',
+                          padding: '0.15rem 0.45rem',
                           borderRadius: '4px',
-                          margin: '0 0.2rem',
+                          margin: '0.15rem 0.25rem',
+                          cursor: 'pointer',
+                          display: 'inline-block',
+                          transition: 'all 0.15s ease',
+                          border: `1px solid ${m.source_type === 'web' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
                         }}
+                        title={`Nhấp để mở đối chiếu song song đoạn #${idx + 1}`}
                       >
                         "{m.matched_text?.slice(0, 70)}..."
                       </span>
@@ -482,13 +525,39 @@ export function PlagiarismReportView({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
-            Danh sách Nguồn Nghi vấn Phát hiện ({matches.length})
-          </h3>
-          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-            Hỗ trợ đối soát dấu mốc thời gian qua Internet Archive
-          </span>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc', margin: 0 }}>
+              Danh sách Nguồn Nghi vấn Phát hiện ({matches.length})
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+              Hỗ trợ đối soát dấu mốc thời gian qua Internet Archive & đối chiếu câu văn song song
+            </span>
+          </div>
+
+          {matches.length > 0 && (
+            <button
+              type="button"
+              onClick={() => openDiffModal(0)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.5rem 0.95rem',
+                borderRadius: '10px',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                color: '#38bdf8',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Columns size={15} />
+              <span>Mở Studio Đối Chiếu Song Song ({matches.length})</span>
+            </button>
+          )}
         </div>
 
         {matches.length === 0 ? (
@@ -624,30 +693,55 @@ export function PlagiarismReportView({
 
                       {/* Action */}
                       <td style={{ padding: '1rem 1.25rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {match.matched_url && onAuditTimestamp && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', justifyContent: 'flex-end' }}>
                           <button
                             type="button"
-                            onClick={() => onAuditTimestamp({ url: match.matched_url, title: match.matched_url })}
+                            onClick={() => openDiffModal(idx)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '0.35rem',
                               padding: '0.4rem 0.75rem',
                               borderRadius: '8px',
-                              border: '1px solid rgba(99, 102, 241, 0.35)',
-                              backgroundColor: 'rgba(99, 102, 241, 0.12)',
-                              color: '#a5b4fc',
+                              border: '1px solid rgba(56, 189, 248, 0.4)',
+                              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                              color: '#38bdf8',
                               fontSize: '0.78rem',
-                              fontWeight: 500,
+                              fontWeight: 600,
                               cursor: 'pointer',
                               transition: 'all 0.2s ease',
                             }}
-                            title="Kiểm tra mốc thời gian xuất bản nguồn qua Internet Archive"
+                            title="Mở xem đối chiếu song song câu văn và nguồn ngoài"
                           >
-                            <Clock size={13} />
-                            <span>Đối soát ngày</span>
+                            <Columns size={13} />
+                            <span>Đối chiếu Diff</span>
                           </button>
-                        )}
+
+                          {match.matched_url && onAuditTimestamp && (
+                            <button
+                              type="button"
+                              onClick={() => onAuditTimestamp({ url: match.matched_url, title: match.matched_url })}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                padding: '0.4rem 0.75rem',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(99, 102, 241, 0.35)',
+                                backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                                color: '#a5b4fc',
+                                fontSize: '0.78rem',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}
+                              title="Kiểm tra mốc thời gian xuất bản nguồn qua Internet Archive"
+                            >
+                              <Clock size={13} />
+                              <span>Đối soát ngày</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -657,6 +751,17 @@ export function PlagiarismReportView({
           </div>
         )}
       </div>
+
+      {/* Side-by-Side Diff Modal Studio */}
+      <SideBySideDiffModal
+        isOpen={diffModalOpen}
+        onClose={() => setDiffModalOpen(false)}
+        matches={matches}
+        currentIndex={selectedDiffIndex}
+        onNavigate={(newIdx) => setSelectedDiffIndex(newIdx)}
+        originalText={originalText}
+        onAuditTimestamp={onAuditTimestamp}
+      />
     </div>
   );
 }
