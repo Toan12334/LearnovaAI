@@ -1,9 +1,8 @@
 """
 Embedding Service
 Chuyển đổi các câu văn bản thành dãy vector embeddings.
-Hỗ trợ:
-- BAAI/bge-m3 (1024 dimensions, hỗ trợ đa ngôn ngữ và tiếng Việt xuất sắc) qua SentenceTransformers.
-- FastEmbed (bge-small, paraphrase-multilingual) qua ONNX runtime.
+Sử dụng mô hình:
+- sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (384 dimensions, siêu nhẹ 118MB, hỗ trợ đa ngôn ngữ và tiếng Việt xuất sắc)
 """
 
 from typing import List, Optional, Any
@@ -17,10 +16,10 @@ class EmbeddingService:
         self._model: Optional[Any] = None
         name_lower = self.model_name.lower()
         self._is_sentence_transformer: bool = (
-            "bge-m3" in name_lower
-            or "sentence-transformers" in name_lower
+            "sentence-transformers" in name_lower
             or "minilm" in name_lower
             or "paraphrase" in name_lower
+            or "bge" in name_lower
         )
 
     @property
@@ -31,7 +30,10 @@ class EmbeddingService:
                 logger.info(f"Đang tải mô hình SentenceTransformer: {self.model_name}...")
                 hf_token = getattr(settings, "HF_TOKEN", None)
                 valid_token = hf_token if (hf_token and "your_" not in hf_token and len(hf_token) > 10) else False
-                self._model = SentenceTransformer(self.model_name, token=valid_token)
+                try:
+                    self._model = SentenceTransformer(self.model_name, local_files_only=True)
+                except Exception:
+                    self._model = SentenceTransformer(self.model_name, token=valid_token)
                 logger.info(f"Đã tải thành công mô hình: {self.model_name}")
             else:
                 try:
@@ -48,8 +50,8 @@ class EmbeddingService:
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """
-        Chuyển đổi danh sách N câu văn bản thành N vector số thực.
-        Với BAAI/bge-m3, vector có 1024 chiều và được chuẩn hóa L2 (Cosine Similarity).
+        Chuyển đổi danh sách N câu văn bản thành N vector số thực (384 chiều).
+        Vector được chuẩn hóa L2 để tính Cosine Similarity.
         """
         if not texts:
             return []

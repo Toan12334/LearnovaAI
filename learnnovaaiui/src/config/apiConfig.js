@@ -10,6 +10,10 @@ export const getApiBaseUrl = () => {
   // 1. Ưu tiên biến môi trường VITE_API_URL nếu được chỉ định
   if (import.meta.env.VITE_API_URL) {
     let url = import.meta.env.VITE_API_URL.trim();
+    // Chặn hoàn toàn việc gọi sang Railway, ép buộc chuyển sang VPS
+    if (url.includes('railway.app')) {
+      return 'https://103.178.235.88.sslip.io';
+    }
     // Trên Windows, chuyển 'localhost' thành '127.0.0.1' để tránh lỗi phân giải IPv6 (::1) gây connection refused
     if (url.includes('localhost')) {
       url = url.replace('localhost', '127.0.0.1');
@@ -19,7 +23,7 @@ export const getApiBaseUrl = () => {
 
   // 2. Tự động fallback dựa theo chế độ Vite (PROD vs DEV)
   if (import.meta.env.PROD) {
-    return 'http://103.178.235.88:8000';
+    return 'https://103.178.235.88.sslip.io';
   }
 
   return 'http://127.0.0.1:8000';

@@ -50,12 +50,13 @@ class Settings(BaseSettings):
     SERPER_SEARCH_URL: str = "https://google.serper.dev/search"
 
     # Embedding & Vector Database
-    # - Local: BAAI/bge-m3 (1024 dims)
-    # - Deploy (Railway / Cloud): sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (384 dims)
-    EMBEDDING_MODEL: str | None = None
-    VECTOR_SIZE: int | None = None
+    # Sử dụng mô hình: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (384 dims, siêu nhẹ 118MB, nhanh và tối ưu CPU)
+    EMBEDDING_MODEL: str = (
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
+    VECTOR_SIZE: int = 384
     PLAGIARISM_SIMILARITY_THRESHOLD: float = 0.75
-    INTERNET_CACHE_COLLECTION: str = "internet_web_cache"
+    INTERNET_CACHE_COLLECTION: str = "internet_web_cache_384"
     INTERNET_EXACT_THRESHOLD: float = 0.90
     INTERNET_PARAPHRASE_THRESHOLD: float = 0.78
     INTERNET_SEARCH_CONCURRENCY: int = 5
@@ -75,44 +76,22 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def resolve_environment_and_models(self) -> "Settings":
-        # Nhận diện môi trường Deploy đám mây (Railway, Render, HuggingFace, Docker production, v.v.)
-        is_deployed = bool(
-            os.getenv("RAILWAY_ENVIRONMENT")
-            or os.getenv("RAILWAY_PROJECT_ID")
-            or os.getenv("RENDER")
-            or os.getenv("SPACE_ID")
-            or os.getenv("DYNO")
-            or self.APP_ENV.lower() in ("production", "prod", "staging")
-        )
+        # 1. Luôn ưu tiên mô hình paraphrase-multilingual-MiniLM-L12-v2 (384 dims)
+        if not self.EMBEDDING_MODEL or "bge-m3" in self.EMBEDDING_MODEL.lower():
+            self.EMBEDDING_MODEL = (
+                "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            )
 
-        # 1. Tự động chọn mô hình Embedding nếu chưa chỉ định rõ trong .env / biến môi trường:
-        #    - Chạy Local: BAAI/bge-m3 (chất lượng cao nhất, đa ngôn ngữ & tiếng Việt)
-        #    - Chạy Deploy Cloud: paraphrase-multilingual-MiniLM-L12-v2 (nhẹ 118MB, tránh OOM / Timeout 60s)
-        if not self.EMBEDDING_MODEL:
-            if is_deployed:
-                self.EMBEDDING_MODEL = (
-                    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-                )
-            else:
-                self.EMBEDDING_MODEL = "BAAI/bge-m3"
+        # 2. Đồng bộ số chiều VECTOR_SIZE theo mô hình (384 dims)
+        if not self.VECTOR_SIZE or "bge-m3" in (self.EMBEDDING_MODEL or "").lower():
+            self.VECTOR_SIZE = 384
 
-        # 2. Tự động đồng bộ số chiều VECTOR_SIZE theo EMBEDDING_MODEL nếu chưa set
-        if not self.VECTOR_SIZE:
-            model_lower = self.EMBEDDING_MODEL.lower()
-            if "bge-m3" in model_lower:
-                self.VECTOR_SIZE = 1024
-            elif "minilm" in model_lower or "paraphrase" in model_lower:
-                self.VECTOR_SIZE = 384
-            else:
-                self.VECTOR_SIZE = 1024 if not is_deployed else 384
-
-        # 3. Phân tách Qdrant collection theo vector size để tránh lỗi 400 Bad Request
-        #    (Collection internet_web_cache trên Qdrant Cloud được khởi tạo với 1024 chiều)
-        if self.VECTOR_SIZE != 1024:
+        # 3. Đồng bộ Qdrant collection tương ứng với vector 384 chiều
+        if self.VECTOR_SIZE == 384:
             if self.INTERNET_CACHE_COLLECTION == "internet_web_cache":
-                self.INTERNET_CACHE_COLLECTION = f"internet_web_cache_{self.VECTOR_SIZE}"
+                self.INTERNET_CACHE_COLLECTION = "internet_web_cache_384"
             if self.QDRANT_COLLECTION == "plagiarism_docs":
-                self.QDRANT_COLLECTION = f"plagiarism_docs_{self.VECTOR_SIZE}"
+                self.QDRANT_COLLECTION = "plagiarism_docs_384"
 
         return self
 

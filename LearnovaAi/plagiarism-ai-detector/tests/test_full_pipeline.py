@@ -28,7 +28,7 @@ def run_test_scenario(title: str, text: str):
     print(f"📌 BẮT ĐẦU TEST: '{title}'")
     print("=" * 75)
     print(f"🔹 Cấu hình Vector DB : Qdrant ({settings.QDRANT_COLLECTION})")
-    print(f"🔹 Mô hình Embedding  : {settings.EMBEDDING_MODEL} (1024 dims)")
+    print(f"🔹 Mô hình Embedding  : {settings.EMBEDDING_MODEL} (384 dims)")
     print(f"🔹 Supabase URL       : {settings.SUPABASE_URL}")
     print("-" * 75)
 
@@ -44,7 +44,7 @@ def run_test_scenario(title: str, text: str):
     print(f"✅ BƯỚC 1: Lưu bài viết gốc vào Supabase -> Document ID: {doc_id}")
     print(f"✅ BƯỚC 2: Tách câu qua TextCleaner     -> Tổng cộng {result['total_chunks']} câu")
     print(f"✅ BƯỚC 3: Lưu document_chunks          -> Đã ghi nhận các chunk_id")
-    print(f"✅ BƯỚC 4: Tạo Vector (BAAI/bge-m3)     -> Đã sinh vector 1024 chiều")
+    print(f"✅ BƯỚC 4: Tạo Vector (MiniLM)          -> Đã sinh vector 384 chiều")
     print(f"✅ BƯỚC 5: Lưu kho Qdrant Cloud         -> Đã nạp vào '{settings.QDRANT_COLLECTION}'")
     print(f"✅ BƯỚC 6: Đối soát trùng lặp           -> Tỷ lệ đạo văn: {result['plagiarism_score']}%")
 
@@ -95,11 +95,14 @@ def test_pipeline_execution():
     """Hàm test chuẩn cho pytest"""
     sample_text = """
     Học máy là một nhánh quan trọng của trí tuệ nhân tạo.
-    Mô hình BAAI bge-m3 hỗ trợ đa ngôn ngữ và biểu diễn ngữ nghĩa rất tốt.
+    Mô hình paraphrase-multilingual-MiniLM-L12-v2 hỗ trợ đa ngôn ngữ và biểu diễn ngữ nghĩa rất tốt.
     """
     res = run_test_scenario("Pytest Sample Document", sample_text)
     assert res["status"] == "completed"
     assert res["total_chunks"] >= 1
+    assert "exact_match_score" in res
+    assert "paraphrase_score" in res
+    assert "plagiarism_score" in res
 
 
 if __name__ == "__main__":

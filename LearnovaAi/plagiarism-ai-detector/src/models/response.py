@@ -10,6 +10,7 @@ class MatchDetail(BaseModel):
     matched_document_id: Optional[str] = None
     matched_text: str
     similarity_score: float
+    match_type: Optional[str] = "EXACT"  # 'EXACT' | 'PARAPHRASED'
 
 
 class PlagiarismCheckResponse(BaseModel):
@@ -19,10 +20,29 @@ class PlagiarismCheckResponse(BaseModel):
     total_chunks: int
     matched_chunks_count: int
     plagiarism_score: float
+    exact_match_score: Optional[float] = 0.0
+    paraphrase_score: Optional[float] = 0.0
     is_plagiarized: bool
     matches: List[MatchDetail] = []
     status: str = "completed"
     message: str = "Kiểm tra hoàn tất."
+
+
+class PlagiarismStatusResponse(BaseModel):
+    document_id: str
+    status: str  # 'pending' | 'processing' | 'completed' | 'failed'
+    progress_percentage: int = 0
+    current_step: Optional[str] = None
+    title: Optional[str] = None
+    word_count: Optional[int] = 0
+    total_chunks: Optional[int] = 0
+    matched_chunks_count: Optional[int] = 0
+    plagiarism_score: Optional[float] = None
+    exact_match_score: Optional[float] = None
+    paraphrase_score: Optional[float] = None
+    is_plagiarized: Optional[bool] = None
+    matches: Optional[List[MatchDetail]] = None
+    message: Optional[str] = None
 
 
 class InternetPlagiarismMatch(BaseModel):

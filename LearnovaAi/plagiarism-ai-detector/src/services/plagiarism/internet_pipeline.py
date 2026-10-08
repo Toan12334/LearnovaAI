@@ -16,7 +16,7 @@ class InternetPlagiarismService:
     """
     Unified 4-Step Plagiarism Pipeline:
     1. Pre-processing & Chunking (Noise filter, 60-100 words, Top 20-30% complexity).
-    2. Internal Qdrant DB Lookup (bge-m3 encode -> internal/cache Qdrant collection).
+    2. Internal Qdrant DB Lookup (MiniLM encode -> internal/cache Qdrant collection).
        - If Match > 0.85: Flag as Internal Plagiarism and skip Serper for that chunk.
        - If No Match / Low score: Proceed to Step 3.
     3. Internet Search & Fast Scraping (Dual Query -> Serper Top 3-5 URLs -> Trafilatura Scrape -> Cache to Qdrant).
@@ -53,7 +53,7 @@ class InternetPlagiarismService:
         try:
             # =========================================================================
             # BƯỚC 2: TRA CỨU CSDL NỘI BỘ (QDRANT)
-            # Encode bge-m3 -> Query Qdrant (Collection: internet_web_cache / internal_docs)
+            # Encode MiniLM -> Query Qdrant (Collection: internet_web_cache_384 / plagiarism_docs_384)
             # =========================================================================
             user_vectors = await self.matcher.encode([chunk["text"] for chunk in chunks])
             cached_search_results = await asyncio.gather(

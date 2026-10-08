@@ -1,4 +1,4 @@
-"""BGE-M3 Semantic Re-ranker and Cosine Matcher for Exact and Paraphrased Plagiarism."""
+"""Semantic Re-ranker and Cosine Matcher for Exact and Paraphrased Plagiarism."""
 
 import asyncio
 import re
@@ -11,7 +11,7 @@ from src.services.embedding import embedding_service
 
 
 class SemanticMatcher:
-    """Encode BGE-M3 vectors and classify exact versus paraphrased Internet matches."""
+    """Encode Multilingual MiniLM vectors and classify exact versus paraphrased Internet matches."""
 
     _BOUNDARY = re.compile(r"(?<=[.!?])\s+|\n+")
 
@@ -38,7 +38,7 @@ class SemanticMatcher:
         return float(np.dot(left_arr, right_arr) / (norm_l * norm_r))
 
     async def encode(self, texts: List[str]) -> List[List[float]]:
-        """Encode texts to BGE-M3 vectors in a background thread to prevent blocking FastAPI."""
+        """Encode texts to embeddings in a background thread to prevent blocking FastAPI."""
         if not texts:
             return []
         return await asyncio.to_thread(embedding_service.embed_texts, texts)

@@ -15,17 +15,26 @@ class WinnowingDetector:
         return int(hashlib.md5(gram.encode("utf-8")).hexdigest()[:8], 16)
 
     def extract_fingerprints(self, text: str) -> Set[int]:
-        """Tạo tập hợp fingerprints từ văn bản."""
+        """Tạo tập hợp fingerprints từ văn bản với kích thước cửa sổ thích ứng."""
         cleaned = "".join(c.lower() for c in text if c.isalnum())
-        if len(cleaned) < self.k:
+        if not cleaned:
             return set()
 
-        # Tạo k-grams và hash
-        hashes = [self._hash_gram(cleaned[i : i + self.k]) for i in range(len(cleaned) - self.k + 1)]
-        
+        eff_k = min(self.k, max(4, len(cleaned) // 3))
+        if len(cleaned) < eff_k:
+            return {self._hash_gram(cleaned)}
+
+        hashes = [self._hash_gram(cleaned[i : i + eff_k]) for i in range(len(cleaned) - eff_k + 1)]
+        if not hashes:
+            return set()
+
+        eff_t = min(self.t, max(1, len(hashes) // 2))
+        if len(hashes) <= eff_t:
+            return {min(hashes)}
+
         fingerprints = set()
-        for i in range(len(hashes) - self.t + 1):
-            window = hashes[i : i + self.t]
+        for i in range(len(hashes) - eff_t + 1):
+            window = hashes[i : i + eff_t]
             min_val = min(window)
             fingerprints.add(min_val)
 

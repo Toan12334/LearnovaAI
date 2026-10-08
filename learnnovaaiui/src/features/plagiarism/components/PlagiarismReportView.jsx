@@ -27,6 +27,8 @@ export function PlagiarismReportView({
     total_chunks = 0,
     matched_chunks_count = 0,
     plagiarism_score = 0,
+    exact_match_score = 0,
+    paraphrase_score = 0,
     is_plagiarized = false,
     matches = [],
   } = report;
@@ -163,8 +165,11 @@ export function PlagiarismReportView({
           <div style={{ fontSize: '2.2rem', fontWeight: 800, color: getScoreColor(score) }}>
             {score}%
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
-            {score > 15 ? 'Vượt ngưỡng an toàn quy định' : 'Nằm trong ngưỡng cho phép (<= 15%)'}
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ color: '#94a3b8' }}>
+              🔴 Nguyên văn: <b style={{ color: '#f87171' }}>{exact_match_score}%</b> • 🟡 Diễn đạt lại: <b style={{ color: '#fbbf24' }}>{paraphrase_score}%</b>
+            </div>
+            <div>{score > 15 ? 'Vượt ngưỡng an toàn quy định' : 'Nằm trong ngưỡng cho phép (<= 15%)'}</div>
           </div>
         </div>
 
@@ -553,21 +558,37 @@ export function PlagiarismReportView({
                         )}
                       </td>
 
-                      {/* Source Type */}
+                      {/* Source Type & Match Classification */}
                       <td style={{ padding: '1rem 1rem' }}>
-                        <span
-                          style={{
-                            fontSize: '0.75rem',
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: '6px',
-                            backgroundColor: match.source_type === 'web' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(168, 85, 247, 0.15)',
-                            color: match.source_type === 'web' ? '#38bdf8' : '#c084fc',
-                            border: `1px solid ${match.source_type === 'web' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {match.source_type === 'web' ? '🌐 Web Search' : '🏛️ Qdrant Vector'}
-                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: '6px',
+                              backgroundColor: match.source_type === 'web' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                              color: match.source_type === 'web' ? '#38bdf8' : '#c084fc',
+                              border: `1px solid ${match.source_type === 'web' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(168, 85, 247, 0.3)'}`,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {match.source_type === 'web' ? '🌐 Web Search' : '🏛️ Qdrant Vector'}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '4px',
+                              backgroundColor: match.match_type === 'EXACT' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                              color: match.match_type === 'EXACT' ? '#f87171' : '#fbbf24',
+                              border: `1px solid ${match.match_type === 'EXACT' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {match.match_type === 'EXACT' ? '🔴 Nguyên văn' : '🟡 Diễn đạt lại'}
+                          </span>
+                        </div>
                       </td>
 
                       {/* Matched Snippet */}

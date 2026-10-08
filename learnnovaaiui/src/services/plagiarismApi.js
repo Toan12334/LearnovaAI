@@ -62,6 +62,38 @@ export const plagiarismApi = {
   },
 
   /**
+   * Get check status / progress by document ID
+   * @param {string} documentId
+   */
+  async getStatus(documentId) {
+    return apiClient.get(`/api/v1/plagiarism/status/${documentId}`);
+  },
+
+  /**
+   * Check text asynchronously (for long documents)
+   */
+  async checkTextAsync({
+    text,
+    title = 'Văn bản kiểm tra ngầm',
+    enable_web_search = true,
+    similarity_threshold = 0.75,
+    user_id = null,
+  }) {
+    const payload = {
+      title,
+      text,
+      content: text,
+      enable_web_search,
+      similarity_threshold: Number(similarity_threshold) > 1 
+        ? Number(similarity_threshold) / 100 
+        : Number(similarity_threshold),
+    };
+    if (user_id) payload.user_id = user_id;
+
+    return apiClient.post('/api/v1/plagiarism/check-async', payload);
+  },
+
+  /**
    * Get detailed report by document ID
    * @param {string} documentId
    */
