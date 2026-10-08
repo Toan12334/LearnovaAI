@@ -12,47 +12,154 @@ import {
   BookOpen,
   Sparkles,
   Info,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 /**
- * Phân tích token/từ trùng khớp giữa câu người dùng và câu nguồn
+ * Tách văn bản thành danh sách câu hoàn chỉnh
  */
-function analyzeWordOverlap(userText = '', sourceText = '') {
-  if (!userText || !sourceText) {
-    return {
-      userTokens: (userText || '').split(/\s+/).map((w) => ({ word: w, isMatched: false })),
-      sourceTokens: (sourceText || '').split(/\s+/).map((w) => ({ word: w, isMatched: false })),
-      matchedCount: 0,
-      totalUserWords: 0,
-    };
+function splitSentences(text = '') {
+  if (!text) return [];
+  return text
+    .split(/(?<=[.!?…])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 5);
+}
+
+/**
+ * Chuẩn hóa một từ để so khớp (bỏ dấu câu, chuyển chữ thường)
+ */
+function cleanWord(w = '') {
+  return w.toLowerCase().replace(/[.,;:!?…"''\(\)\[\]\{\}\-\—]/g, '').trim();
+}
+
+/**
+ * Tìm câu trong bài viết của người dùng khớp nhất với đoạn nguồn
+ */
+function findBestMatchingSentence(fullText = '', matchedText = '') {
+  if (!fullText || !matchedText) return fullText || matchedText || '';
+  
+  const sentences = splitSentences(fullText);
+  if (sentences.length <= 1) return fullText;
+
+  const targetWords = matchedText.split(/\s+/).map(cleanWord).filter((w) => w.length >= 2);
+  const targetSet = new Set(targetWords);
+
+  let bestSentence = sentences[0];
+  let maxScore = -1;
+
+  for (const sentence of sentences) {
+    const sWords = sentence.split(/\s+/).map(cleanWord).filter((w) => w.length >= 2);
+    if (sWords.length === 0) continue;
+
+    // Đếm số từ chung
+    let common = 0;
+    for (const w of sWords) {
+      if (targetSet.has(w)) common++;
+    }
+
+    // Tỷ lệ trùng khớp Jaccard
+    const score = common / Math.max(1, sWords.length + targetWords.length - common);
+    if (score > maxScore) {
+      maxScore = score;
+      bestSentence = sentence;
+    }
   }
 
-  const cleanWord = (w) => w.toLowerCase().replace(/[.,;:!?…"''\(\)\[\]\{\}\-\—]/g, '').trim();
+  return bestSentence;
+}
+
+/**
+ * Thuật toán phát hiện Cụm từ liên tiếp (Continuous Phrase Matching):
+ * - CHỈ bôi đỏ khi trùng từ 3 từ liên tiếp trở lên (Continuous N-grams / Phrasing).
+ * - KHÔNG bôi đỏ các từ đơn lẻ 1-2 từ rời rạc.
+ * - Gom các từ liên tiếp thành 1 dải highlight liền mạch tự nhiên (giống bút dạ quang của Turnitin).
+ */
+function analyzeContinuousPhrases(userText = '', sourceText = '', minPhraseLength = 3) {
+  if (!userText || !sourceText) {
+    return {
+      userSegments: [{ isMatched: false, text: userText || '' }],
+      sourceSegments: [{ isMatched: false, text: sourceText || '' }],
+      matchedWordCount: 0,
+      totalUserWords: (userText || '').split(/\s+/).filter(Boolean).length,
+    };
+  }
 
   const userWords = userText.split(/\s+/).filter(Boolean);
   const sourceWords = sourceText.split(/\s+/).filter(Boolean);
 
-  const sourceWordSet = new Set(sourceWords.map(cleanWord).filter((w) => w.length >= 2));
-  const userWordSet = new Set(userWords.map(cleanWord).filter((w) => w.length >= 2));
+  const cleanUser = userWords.map(cleanWord);
+  const cleanSource = sourceWords.map(cleanWord);
 
-  let matchedCount = 0;
-  const userTokens = userWords.map((word) => {
-    const cw = cleanWord(word);
-    const isMatched = cw.length >= 2 && sourceWordSet.has(cw);
-    if (isMatched) matchedCount += 1;
-    return { word, isMatched };
-  });
+  const matchedUserIndices = new Set();
+  const matchedSourceIndices = new Set();
 
-  const sourceTokens = sourceWords.map((word) => {
-    const cw = cleanWord(word);
-    const isMatched = cw.length >= 2 && userWordSet.has(cw);
-    return { word, isMatched };
-  });
+  // Tìm các chuỗi con liên tiếp (Common Substrings) dài từ minPhraseLength từ trở lên
+  const effectiveMinLen = Math.min(minPhraseLength, Math.max(2, cleanSource.length));
+
+  for (let i = 0; i < cleanUser.length; i++) {
+    for (let j = 0; j < cleanSource.length; j++) {
+      let len = 0;
+      while (
+        i + len < cleanUser.length &&
+        j + len < cleanSource.length &&
+        cleanUser[i + len] === cleanSource[j + len] &&
+        cleanUser[i + len].length > 0
+      ) {
+        len++;
+      }
+
+      // Nếu cụm từ trùng nhau đạt ngưỡng từ liên tiếp
+      if (len >= effectiveMinLen) {
+        for (let k = 0; k < len; k++) {
+          matchedUserIndices.add(i + k);
+          matchedSourceIndices.add(j + k);
+        }
+      }
+    }
+  }
+
+  // Nếu câu nguồn ngắn hoặc paraphrased cao mà phrase matching chưa bắt đủ,
+  // kiểm tra bổ sung các cụm 2 từ có nghĩa nếu cả 2 câu có độ tương đồng cao
+  if (matchedUserIndices.size === 0 && cleanSource.length <= 5) {
+    for (let i = 0; i < cleanUser.length; i++) {
+      for (let j = 0; j < cleanSource.length; j++) {
+        if (
+          cleanUser[i] === cleanSource[j] &&
+          cleanUser[i].length >= 3 &&
+          ((i + 1 < cleanUser.length && j + 1 < cleanSource.length && cleanUser[i + 1] === cleanSource[j + 1]) ||
+            (i > 0 && j > 0 && cleanUser[i - 1] === cleanSource[j - 1]))
+        ) {
+          matchedUserIndices.add(i);
+          matchedSourceIndices.add(j);
+        }
+      }
+    }
+  }
+
+  // Gom các từ liên tiếp thành các đoạn phân đoạn (Segments) liền mạch
+  const buildSegments = (words, matchedSet) => {
+    const segments = [];
+    let currentSegment = null;
+
+    words.forEach((word, index) => {
+      const isMatched = matchedSet.has(index);
+      if (!currentSegment || currentSegment.isMatched !== isMatched) {
+        currentSegment = { isMatched, text: word };
+        segments.push(currentSegment);
+      } else {
+        currentSegment.text += ' ' + word;
+      }
+    });
+
+    return segments;
+  };
 
   return {
-    userTokens,
-    sourceTokens,
-    matchedCount,
+    userSegments: buildSegments(userWords, matchedUserIndices),
+    sourceSegments: buildSegments(sourceWords, matchedSourceIndices),
+    matchedWordCount: matchedUserIndices.size,
     totalUserWords: userWords.length,
   };
 }
@@ -68,6 +175,7 @@ export function SideBySideDiffModal({
 }) {
   const [copiedUser, setCopiedUser] = useState(false);
   const [copiedSource, setCopiedSource] = useState(false);
+  const [showFullDoc, setShowFullDoc] = useState(false);
 
   if (!isOpen || !matches || matches.length === 0) return null;
 
@@ -87,10 +195,16 @@ export function SideBySideDiffModal({
 
   const isExact = match_type === 'EXACT' || simPercent >= 88;
 
-  // Nếu originalText có chứa nhiều câu, tìm đoạn gần nhất khớp với match
-  const userSentence = currentMatch.user_text || originalText || currentMatch.matched_text;
+  // Lấy chính xác câu tương ứng trong bài viết người dùng (thay vì nhét cả bài 100 từ vào)
+  const targetSentence =
+    currentMatch.user_text ||
+    findBestMatchingSentence(originalText, matched_text) ||
+    matched_text;
 
-  const diffResult = analyzeWordOverlap(userSentence, matched_text);
+  const textToAnalyze = showFullDoc && originalText ? originalText : targetSentence;
+
+  // Phân tích cụm từ liên tiếp (loại bỏ bôi đỏ lẻ tẻ)
+  const diffResult = analyzeContinuousPhrases(textToAnalyze, matched_text, 3);
 
   const handleCopy = (text, isUser = true) => {
     navigator.clipboard.writeText(text);
@@ -121,7 +235,7 @@ export function SideBySideDiffModal({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        backgroundColor: 'rgba(5, 8, 20, 0.82)',
+        backgroundColor: 'rgba(5, 8, 20, 0.85)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
@@ -136,8 +250,8 @@ export function SideBySideDiffModal({
       <div
         style={{
           width: '100%',
-          maxWidth: '1050px',
-          maxHeight: '90vh',
+          maxWidth: '1080px',
+          maxHeight: '92vh',
           backgroundColor: '#0F172A',
           borderRadius: '20px',
           border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -163,8 +277,8 @@ export function SideBySideDiffModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <div
               style={{
-                width: '40px',
-                height: '40px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '12px',
                 backgroundColor: isExact ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
                 display: 'flex',
@@ -177,9 +291,9 @@ export function SideBySideDiffModal({
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
-                  Đối Chiếu Song Song (Side-by-side Diff View)
+                  Đối Chiếu Song Song Cụm Từ (Side-by-side Diff View)
                 </h3>
                 <span
                   style={{
@@ -195,7 +309,7 @@ export function SideBySideDiffModal({
                   {isExact ? '🔴 Trùng Khớp Nguyên Văn (EXACT)' : '🟡 Xào Xáo / Diễn Đạt Lại (PARAPHRASED)'}
                 </span>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0.2rem 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0.25rem 0 0' }}>
                 Đoạn nghi vấn {currentIndex + 1} / {matches.length} • Độ tương đồng ngữ nghĩa:
                 <b style={{ color: isExact ? '#f87171' : '#fbbf24', marginLeft: '0.3rem' }}>{simPercent}%</b>
               </p>
@@ -307,7 +421,7 @@ export function SideBySideDiffModal({
               fontSize: '0.85rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span style={{ color: '#94a3b8' }}>Nguồn phát hiện:</span>
               {matched_url ? (
                 <a
@@ -389,66 +503,87 @@ export function SideBySideDiffModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <BookOpen size={16} color="#818cf8" />
                   <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.9rem' }}>
-                    Bài viết của bạn (Văn bản kiểm tra)
+                    Bài viết của bạn ({showFullDoc ? 'Toàn văn bản' : 'Câu nghi vấn'})
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(userSentence, true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    padding: '0.25rem 0.55rem',
-                    borderRadius: '6px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    color: '#94a3b8',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {copiedUser ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
-                  <span>{copiedUser ? 'Đã sao chép' : 'Sao chép'}</span>
-                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  {originalText && originalText.length > targetSentence.length && (
+                    <button
+                      type="button"
+                      onClick={() => setShowFullDoc(!showFullDoc)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '0.25rem 0.55rem',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        backgroundColor: showFullDoc ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                        color: showFullDoc ? '#c7d2fe' : '#94a3b8',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                      }}
+                      title={showFullDoc ? 'Chuyển về xem câu nghi vấn' : 'Xem toàn bài viết'}
+                    >
+                      {showFullDoc ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                      <span>{showFullDoc ? 'Xem câu này' : 'Xem cả bài'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(textToAnalyze, true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      color: '#94a3b8',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {copiedUser ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
+                    <span>{copiedUser ? 'Đã chép' : 'Sao chép'}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Column Content */}
+              {/* Column Content: Highlighting liền mạch tự nhiên */}
               <div
                 style={{
                   padding: '1.25rem',
-                  fontSize: '0.95rem',
-                  lineHeight: '1.8',
-                  color: '#e2e8f0',
+                  fontSize: '0.98rem',
+                  lineHeight: '1.9',
+                  color: '#cbd5e1',
                   minHeight: '180px',
-                  maxHeight: '260px',
+                  maxHeight: '280px',
                   overflowY: 'auto',
                 }}
               >
-                {diffResult.userTokens.map((t, idx) => (
-                  <span
-                    key={idx}
-                    style={{
-                      backgroundColor: t.isMatched
-                        ? isExact
-                          ? 'rgba(239, 68, 68, 0.28)'
-                          : 'rgba(245, 158, 11, 0.28)'
-                        : 'transparent',
-                      color: t.isMatched
-                        ? isExact
-                          ? '#fca5a5'
-                          : '#fde047'
-                        : '#cbd5e1',
-                      padding: t.isMatched ? '0.12rem 0.25rem' : '0',
-                      borderRadius: '4px',
-                      fontWeight: t.isMatched ? 600 : 400,
-                      marginRight: '0.28rem',
-                      display: 'inline-block',
-                    }}
-                  >
-                    {t.word}
-                  </span>
-                ))}
+                {diffResult.userSegments.map((seg, idx) =>
+                  seg.isMatched ? (
+                    <mark
+                      key={idx}
+                      style={{
+                        backgroundColor: isExact ? 'rgba(239, 68, 68, 0.22)' : 'rgba(245, 158, 11, 0.22)',
+                        color: isExact ? '#fca5a5' : '#fde047',
+                        borderBottom: `2.5px solid ${isExact ? '#ef4444' : '#f59e0b'}`,
+                        borderRadius: '3px',
+                        padding: '0.1rem 0.2rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {seg.text}
+                    </mark>
+                  ) : (
+                    <span key={idx}>{seg.text} </span>
+                  )
+                )}
               </div>
 
               {/* Column Footer */}
@@ -465,7 +600,7 @@ export function SideBySideDiffModal({
               >
                 <span>Tổng từ: {diffResult.totalUserWords} từ</span>
                 <span>
-                  Từ ngữ trùng khớp: <b style={{ color: isExact ? '#f87171' : '#fbbf24' }}>{diffResult.matchedCount} từ</b>
+                  Từ trong cụm trùng: <b style={{ color: isExact ? '#f87171' : '#fbbf24' }}>{diffResult.matchedWordCount} từ</b>
                 </span>
               </div>
             </div>
@@ -495,7 +630,7 @@ export function SideBySideDiffModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                   <Sparkles size={16} color="#38bdf8" />
                   <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: '0.9rem' }}>
-                    Nội dung thu thập từ Nguồn ngoài
+                    Nội dung đối chiếu từ Nguồn ngoài
                   </span>
                 </div>
                 <button
@@ -515,46 +650,41 @@ export function SideBySideDiffModal({
                   }}
                 >
                   {copiedSource ? <Check size={12} color="#34d399" /> : <Copy size={12} />}
-                  <span>{copiedSource ? 'Đã sao chép' : 'Sao chép'}</span>
+                  <span>{copiedSource ? 'Đã chép' : 'Sao chép'}</span>
                 </button>
               </div>
 
-              {/* Column Content */}
+              {/* Column Content: Highlighting liền mạch tự nhiên */}
               <div
                 style={{
                   padding: '1.25rem',
-                  fontSize: '0.95rem',
-                  lineHeight: '1.8',
-                  color: '#e2e8f0',
+                  fontSize: '0.98rem',
+                  lineHeight: '1.9',
+                  color: '#cbd5e1',
                   minHeight: '180px',
-                  maxHeight: '260px',
+                  maxHeight: '280px',
                   overflowY: 'auto',
                 }}
               >
-                {diffResult.sourceTokens.map((t, idx) => (
-                  <span
-                    key={idx}
-                    style={{
-                      backgroundColor: t.isMatched
-                        ? isExact
-                          ? 'rgba(239, 68, 68, 0.28)'
-                          : 'rgba(245, 158, 11, 0.28)'
-                        : 'transparent',
-                      color: t.isMatched
-                        ? isExact
-                          ? '#fca5a5'
-                          : '#fde047'
-                        : '#cbd5e1',
-                      padding: t.isMatched ? '0.12rem 0.25rem' : '0',
-                      borderRadius: '4px',
-                      fontWeight: t.isMatched ? 600 : 400,
-                      marginRight: '0.28rem',
-                      display: 'inline-block',
-                    }}
-                  >
-                    {t.word}
-                  </span>
-                ))}
+                {diffResult.sourceSegments.map((seg, idx) =>
+                  seg.isMatched ? (
+                    <mark
+                      key={idx}
+                      style={{
+                        backgroundColor: isExact ? 'rgba(239, 68, 68, 0.22)' : 'rgba(245, 158, 11, 0.22)',
+                        color: isExact ? '#fca5a5' : '#fde047',
+                        borderBottom: `2.5px solid ${isExact ? '#ef4444' : '#f59e0b'}`,
+                        borderRadius: '3px',
+                        padding: '0.1rem 0.2rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {seg.text}
+                    </mark>
+                  ) : (
+                    <span key={idx}>{seg.text} </span>
+                  )
+                )}
               </div>
 
               {/* Column Footer */}
@@ -570,7 +700,7 @@ export function SideBySideDiffModal({
                 }}
               >
                 <span>Loại nguồn: {source_type === 'web' ? 'Google Web Crawl' : 'Qdrant Internal'}</span>
-                <span style={{ color: '#38bdf8' }}>Đối soát đối ứng</span>
+                <span style={{ color: '#38bdf8' }}>Đối chiếu trực tiếp</span>
               </div>
             </div>
           </div>
@@ -593,8 +723,8 @@ export function SideBySideDiffModal({
                 {isExact ? 'Khuyến nghị xử lý Trùng khớp Nguyên văn:' : 'Khuyến nghị xử lý Diễn đạt lại (Paraphrase):'}
               </b>{' '}
               {isExact
-                ? 'Đoạn văn này có tỷ lệ trùng khớp từ ngữ trên 85% so với nguồn ngoài. Theo quy chuẩn học thuật, bạn cần đặt đoạn này trong dấu ngoặc kép và bổ sung chỉ dẫn trích dẫn tác giả (Citation) ở cuối câu, hoặc diễn đạt lại hoàn toàn bằng ngôn ngữ nghiên cứu của riêng bạn.'
-                : 'Mặc dù từ ngữ đã được thay đổi hoặc đảo vị trí, mô hình Vector ngữ nghĩa phát hiện cấu trúc ý tưởng vẫn tương đồng vượt ngưỡng quy định (> 75%). Khuyến nghị bạn bổ sung luận điểm cá nhân, diễn giải thêm ngữ cảnh thực tế hoặc trích dẫn nguồn ý tưởng ban đầu.'}
+                ? 'Đoạn văn này có cụm từ trùng khớp nguyên văn trên 85% so với nguồn ngoài. Theo chuẩn học thuật, bạn cần đặt đoạn này trong dấu ngoặc kép và bổ sung chỉ dẫn trích dẫn tác giả (Citation) ở cuối câu, hoặc diễn đạt lại bằng ngôn ngữ riêng.'
+                : 'Mô hình Vector ngữ nghĩa phát hiện cấu trúc ý tưởng tương đồng vượt ngưỡng (> 75%). Khuyến nghị bạn bổ sung luận điểm cá nhân hoặc trích dẫn nguồn ý tưởng ban đầu.'}
             </div>
           </div>
         </div>
