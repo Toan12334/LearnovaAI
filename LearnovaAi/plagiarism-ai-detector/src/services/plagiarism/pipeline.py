@@ -666,6 +666,35 @@ class PlagiarismPipeline:
             )
             self.supabase.table("documents").update(base_update).eq("id", document_id).execute()
 
+        # Lưu result_payload JSON vào DB để ReportPage có thể tải lại chi tiết sau này
+        # Chỉ lưu summary (không lưu matches đầy đủ để tránh quá lớn - matches đã có trong plagiarism_matches)
+        result_summary_payload = {
+            "document_id": document_id,
+            "title": title,
+            "word_count": word_count,
+            "total_chunks": total_sentences,
+            "matched_chunks_count": len(matched_chunk_indices),
+            "plagiarism_score": weighted_plagiarism_score,
+            "exact_match_score": exact_percentage,
+            "paraphrase_score": paraphrased_percentage,
+            "coverage_percentage": coverage_percentage,
+            "coverage_text": coverage_text,
+            "warning": web_warning,
+            "matches_count": len(all_matches),
+            "status": "completed",
+            # Lưu tối đa 50 matches đầu tiên để xem báo cáo
+            "matches": all_matches[:50] if all_matches else [],
+        }
+        try:
+            import json
+            self.supabase.table("documents").update({
+                "result_payload": result_summary_payload,
+            }).eq("id", document_id).execute()
+            logger.info(f"-> Đã lưu result_payload vào DB cho document {document_id}")
+        except Exception as rp_err:
+            logger.warning(f"Không lưu được result_payload (cột chưa tồn tại?): {rp_err}. "
+                           "SQL gợi ý: ALTER TABLE documents ADD COLUMN result_payload jsonb;")
+
         result_payload = {
             "document_id": document_id,
             "title": title,
