@@ -224,7 +224,11 @@ export function HistoryPage({ onSelectReport, onOpenAuth }) {
                               {item.title}
                             </div>
                             <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                              <span className="font-mono font-medium text-indigo-600">{item.id}</span>
+                              <span className="font-mono font-medium text-indigo-600" title={item.id}>
+                                {item.id.startsWith('AI-') || item.id.startsWith('PLAG-')
+                                  ? item.id
+                                  : `${isAI ? 'AI' : 'PLAG'}-${item.id.slice(-6).toUpperCase()}`}
+                              </span>
                               <span>•</span>
                               <span>{isAI ? 'PhoBERT AI Check' : 'Đối soát Đạo văn'}</span>
                               {item.sourceFile && (

@@ -90,9 +90,11 @@ export function PlagiarismChecker({ onOpenAuth }) {
 
       // Auto save to user history
       const plagScore = res.plagiarism_score ?? 0;
+      const checkDocId = res.document_id || `PLAG-${Date.now().toString().slice(-6)}`;
       historyService.saveCheckResult(
         {
-          id: res.document_id ? `PLAG-${res.document_id.slice(-6)}` : `PLAG-${Date.now().toString().slice(-6)}`,
+          id: checkDocId,
+          document_id: res.document_id || null,
           type: 'plagiarism',
           title: checkTitle,
           author: user ? (user.full_name || user.email) : 'Khách',

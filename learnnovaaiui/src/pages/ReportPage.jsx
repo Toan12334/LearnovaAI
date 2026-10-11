@@ -8,6 +8,8 @@ import { AIDetectorResult } from "../features/ai-detector/components/AIDetectorR
 import { PlagiarismReportView } from "../features/plagiarism/components/PlagiarismReportView";
 import { ArrowLeft, Printer, Download, Bot, Search, Calendar, User } from "lucide-react";
 
+import plagiarismApi from "../services/plagiarismApi";
+
 export function ReportPage({ reportId = "REP-2026-001", onBack }) {
   const { user } = useAuth();
   const [historyItem, setHistoryItem] = useState(null);
@@ -22,25 +24,24 @@ export function ReportPage({ reportId = "REP-2026-001", onBack }) {
     setLoading(true);
     try {
       const history = historyService.getHistory(user?.id);
-      let found = history.find((h) => h.id === reportId);
+      let found = history.find(
+        (h) => h.id === reportId || h.document_id === reportId || (h.id?.startsWith("PLAG-") && reportId.endsWith(h.id.replace("PLAG-", "")))
+      );
 
-      if (!found || !found.result) {
+      // If no local result or missing matches, attempt fetching from backend API
+      if (!found || !found.result || !found.result.matches) {
         try {
-          const token = localStorage.getItem("learnnova_token");
-          const apiBase = import.meta.env.VITE_API_URL || "http://103.178.235.88:8001";
-          const res = await fetch(`${apiBase}/api/v1/plagiarism/reports/${reportId}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          });
-          if (res.ok) {
-            const data = await res.json();
+          const lookupId = found?.document_id || reportId;
+          const data = await plagiarismApi.getReportById(lookupId);
+          if (data && data.document) {
             const doc = data.document || {};
             const dbMatches = data.matches || [];
 
             const resultPayload = doc.result_payload || {
               document_id: doc.id || reportId,
-              title: doc.title || "Van ban kiem tra",
+              title: doc.title || "Văn bản kiểm tra",
               word_count: doc.word_count || 0,
-              total_chunks: doc.total_chunks || 0,
+              total_chunks: data.total_chunks || doc.total_chunks || 0,
               matched_chunks_count: doc.matched_chunks_count || dbMatches.length,
               plagiarism_score: doc.plagiarism_score || 0,
               exact_match_score: doc.exact_match_score || 0,
@@ -55,20 +56,23 @@ export function ReportPage({ reportId = "REP-2026-001", onBack }) {
 
             const apiItem = {
               id: doc.id || reportId,
+              document_id: doc.id || reportId,
               type: doc.type || (doc.ai_score != null && doc.ai_score > 0 ? "ai_detection" : "plagiarism"),
-              title: doc.title || "Van ban kiem tra",
+              title: doc.title || "Văn bản kiểm tra",
               author: user ? (user.full_name || user.email) : "Người dùng",
               date: doc.created_at || new Date().toISOString(),
-              score: doc.plagiarism_score ?? 0,
+              score: Math.round(doc.plagiarism_score ?? 0),
+              status: doc.status || ((doc.plagiarism_score ?? 0) >= 50 ? "Trùng lặp cao" : (doc.plagiarism_score ?? 0) >= 20 ? "Cần xem xét" : "Độc bản an toàn"),
+              sourcesCount: dbMatches.length,
               result: resultPayload,
               user_id: user?.id,
             };
 
-            found = found ? { ...found, result: resultPayload, author: apiItem.author } : apiItem;
+            found = found ? { ...found, result: resultPayload, author: apiItem.author, sourcesCount: dbMatches.length } : apiItem;
             historyService.saveCheckResult(found, user?.id);
           }
         } catch (apiErr) {
-          console.warn("Khong fetch duoc report tu API:", apiErr);
+          console.warn("Không thể tải báo cáo từ API:", apiErr);
         }
       }
 
@@ -80,9 +84,10 @@ export function ReportPage({ reportId = "REP-2026-001", onBack }) {
       } else {
         setHistoryItem({
           id: reportId,
+          document_id: reportId,
           type: reportId.startsWith("AI") ? "ai_detection" : "plagiarism",
           title: "Báo cáo kiểm tra tài liệu",
-          author: user ? (user.full_name || user.email) : "Nguoi dung",
+          author: user ? (user.full_name || user.email) : "Người dùng",
           date: new Date().toISOString(),
           score: 0,
           result: null,
@@ -162,14 +167,14 @@ export function ReportPage({ reportId = "REP-2026-001", onBack }) {
               <AIDetectorResult result={historyItem.result} />
             ) : (
               <div className="p-6 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
-                Khong tim thay du lieu chi tiet cho luot check PhoBERT nay.
+                Không tìm thấy dữ liệu phân tích chi tiết cho lượt kiểm tra PhoBERT này.
               </div>
             )
           ) : historyItem.result ? (
-            <PlagiarismReportView report={historyItem.result} originalText={historyItem.title} onBack={onBack} />
+            <PlagiarismReportView report={historyItem.result} originalText={historyItem.result?.original_text || historyItem.title} onBack={onBack} />
           ) : (
             <div className="p-6 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-sm flex flex-col gap-3">
-              <p>Bao cao doi soat kiem tra dao van cho ma <strong>{historyItem.id}</strong>.</p>
+              <p>Báo cáo đối soát kiểm tra đạo văn cho mã <strong>{historyItem.id}</strong>.</p>
               <div className="grid grid-cols-2 gap-3 mt-1">
                 <div className="p-3 bg-white rounded-lg border border-indigo-100">
                   <div className="text-xs text-indigo-500 font-semibold mb-1">Điểm trùng lặp</div>

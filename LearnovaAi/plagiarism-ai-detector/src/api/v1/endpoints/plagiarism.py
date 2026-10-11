@@ -314,15 +314,46 @@ async def get_document_report(document_id: str):
     try:
         from src.db.supabase_client import get_supabase_client
         supabase = get_supabase_client()
-        doc_res = supabase.table("documents").select("*").eq("id", document_id).execute()
-        if not doc_res.data:
+        
+        # 1. Tra cứu document theo UUID hoặc theo mã PLAG- ngắn
+        doc_res = None
+        clean_id = document_id.strip()
+        if not clean_id.startswith("PLAG-"):
+            try:
+                doc_res = supabase.table("documents").select("*").eq("id", clean_id).execute()
+            except Exception:
+                pass
+
+        if not doc_res or not doc_res.data:
+            # Fallback nếu truyền short ID (ví dụ PLAG-123456 hoặc đuôi 6 ký tự)
+            short_code = clean_id.replace("PLAG-", "").strip().lower()
+            try:
+                all_recent = supabase.table("documents").select("*").order("created_at", desc=True).limit(50).execute()
+                for candidate in (all_recent.data or []):
+                    c_id = str(candidate.get("id", "")).lower()
+                    if c_id.endswith(short_code) or short_code in c_id:
+                        doc_res = type("Res", (), {"data": [candidate]})()
+                        clean_id = candidate["id"]
+                        break
+            except Exception:
+                pass
+
+        if not doc_res or not doc_res.data:
             raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu tương ứng.")
 
         doc_data = doc_res.data[0]
+        actual_doc_id = doc_data["id"]
 
-        # Lấy các chunks và matches
-        chunks_res = supabase.table("document_chunks").select("id").eq("document_id", document_id).execute()
-        chunk_ids = [c["id"] for c in (chunks_res.data or [])]
+        # 2. Lấy các chunks và nội dung câu tương ứng
+        chunks_res = (
+            supabase.table("document_chunks")
+            .select("id, chunk_index, content")
+            .eq("document_id", actual_doc_id)
+            .order("chunk_index", desc=False)
+            .execute()
+        )
+        chunk_map = {c["id"]: c for c in (chunks_res.data or [])}
+        chunk_ids = list(chunk_map.keys())
 
         matches_list = []
         if chunk_ids:
@@ -332,7 +363,11 @@ async def get_document_report(document_id: str):
                 .in_("chunk_id", chunk_ids)
                 .execute()
             )
-            matches_list = matches_res.data or []
+            for m in (matches_res.data or []):
+                c_info = chunk_map.get(m.get("chunk_id"), {})
+                m["chunk_text"] = c_info.get("content", "")
+                m["chunk_index"] = c_info.get("chunk_index", 0)
+                matches_list.append(m)
 
         return {
             "document": doc_data,

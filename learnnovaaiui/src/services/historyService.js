@@ -49,25 +49,68 @@ export const historyService = {
     try {
       const res = await plagiarismApi.getHistory();
       if (res && Array.isArray(res.documents) && res.documents.length > 0) {
-        const dbItems = res.documents.map((doc) => ({
-          id: doc.id || `DOC-${Date.now()}`,
-          type: doc.type || (doc.ai_score !== undefined ? 'ai_detection' : 'plagiarism'),
-          title: doc.title || 'Văn bản kiểm tra',
-          author: doc.author || 'Người dùng',
-          date: doc.created_at || doc.date || new Date().toISOString(),
-          score: doc.plagiarism_score ?? doc.score ?? 0,
-          status: doc.status || ((doc.plagiarism_score ?? doc.score ?? 0) >= 50 ? 'Cần lưu ý' : 'An toàn'),
-          sourcesCount: doc.sources_count || 0,
-          result: doc.result_payload || doc.result || null,
-          user_id: userId,
-        }));
+        // Map local items for fast lookup and result preservation
+        const localMap = new Map();
+        localItems.forEach((item) => {
+          if (item.id) localMap.set(item.id, item);
+          if (item.document_id) localMap.set(item.document_id, item);
+          if (item.id?.startsWith('PLAG-')) {
+            const suffix = item.id.replace('PLAG-', '').toLowerCase();
+            localMap.set(`suffix_${suffix}`, item);
+          }
+        });
 
-        // Merge DB items with local items (DB items take precedence if duplicated)
+        const dbItems = res.documents.map((doc) => {
+          const docId = doc.id || `DOC-${Date.now()}`;
+          const isAi = doc.type === 'ai_detection' || 
+            (doc.ai_score != null && doc.ai_score > 0 && (!doc.plagiarism_score || doc.plagiarism_score === 0));
+          
+          const rawScore = isAi 
+            ? (doc.ai_score ?? doc.score ?? 0) 
+            : (doc.plagiarism_score ?? doc.score ?? 0);
+          const score = typeof rawScore === 'number' ? Math.round(rawScore) : Number(rawScore) || 0;
+
+          // Check if local cache has full result payload (e.g. detailed matches)
+          const matchedLocal = localMap.get(docId) || 
+            localMap.get(`suffix_${docId.slice(-6).toLowerCase()}`);
+
+          const fullResult = doc.result_payload || doc.result || matchedLocal?.result || null;
+
+          return {
+            id: docId,
+            document_id: docId,
+            type: isAi ? 'ai_detection' : 'plagiarism',
+            title: doc.title || (matchedLocal?.title) || 'Văn bản kiểm tra',
+            author: doc.author || matchedLocal?.author || 'Người dùng',
+            date: doc.created_at || doc.date || new Date().toISOString(),
+            score: score,
+            status: doc.status || (isAi 
+              ? (score >= 50 ? 'Tín hiệu AI Cao' : 'Nội dung Người viết')
+              : (score >= 50 ? 'Trùng lặp cao' : score >= 20 ? 'Cần xem xét' : 'Độc bản an toàn')),
+            sourcesCount: doc.sources_count || (fullResult?.matches?.length ?? 0),
+            sourceFile: doc.sourceFile || matchedLocal?.sourceFile || null,
+            result: fullResult,
+            user_id: userId,
+          };
+        });
+
+        // Merge DB items with unique local-only items (AI checks or local sample data)
         const dbIds = new Set(dbItems.map((i) => i.id));
-        const merged = [
-          ...dbItems,
-          ...localItems.filter((i) => !dbIds.has(i.id) && !i.id.startsWith('AI-2026-') && !i.id.startsWith('PLAG-2026-')),
-        ];
+        const dbSuffixes = new Set(dbItems.map((i) => i.id.slice(-6).toLowerCase()));
+
+        const localOnlyItems = localItems.filter((i) => {
+          if (dbIds.has(i.id)) return false;
+          if (i.document_id && dbIds.has(i.document_id)) return false;
+          if (i.id?.startsWith('PLAG-')) {
+            const suf = i.id.replace('PLAG-', '').toLowerCase();
+            if (dbSuffixes.has(suf)) return false;
+          }
+          // Do not persist mock sample items once user has real DB items
+          if (i.id?.startsWith('PLAG-2026-') || i.id?.startsWith('AI-2026-')) return false;
+          return true;
+        });
+
+        const merged = [...dbItems, ...localOnlyItems];
 
         const key = this.getStorageKey(userId);
         localStorage.setItem(key, JSON.stringify(merged));

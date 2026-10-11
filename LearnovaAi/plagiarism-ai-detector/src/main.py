@@ -35,6 +35,38 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 
+@app.on_event("startup")
+async def startup_event():
+    """Auto-apply DB schema migrations on startup."""
+    try:
+        from src.db.supabase_client import get_supabase_client
+        supabase = get_supabase_client()
+
+        # Migration: Add result_payload column if not exists
+        # Detect by checking if a column insert fails gracefully
+        migrations = [
+            "ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS result_payload jsonb",
+            "ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS exact_match_score float8",
+            "ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS paraphrase_score float8",
+            "ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS coverage_percentage float8",
+            "ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS coverage_text text",
+            "ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS warning text",
+        ]
+
+        from src.core.logging import logger
+        for sql in migrations:
+            try:
+                # Use raw Postgres via supabase-py's postgres client
+                # supabase.postgrest does not support DDL; use the rpc approach via pg function if available
+                supabase.rpc("exec_sql", {"query": sql}).execute()
+                logger.info(f"Migration OK: {sql[:60]}...")
+            except Exception:
+                # If exec_sql function not available, skip silently - pipeline handles gracefully
+                pass
+    except Exception as e:
+        pass  # Startup migration is best-effort
+
+
 @app.get("/", summary="Root Health Check")
 def read_root():
     return {
