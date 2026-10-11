@@ -106,12 +106,19 @@ async def get_order_status(
 async def payos_webhook(request: Request):
     """
     Webhook tiếp nhận sự kiện thanh toán từ PayOS:
+    - Tiếp nhận xác thực Webhook URL khi đăng ký với PayOS.
     - Tự động xác thực chữ ký số HMAC-SHA256.
     - Cập nhật trạng thái đơn hàng và cộng từ tức thì cho người dùng.
     """
     try:
         payload = await request.json()
         logger.info(f"[PayOS Webhook] Nhận dữ liệu webhook: {payload}")
+
+        # Trường hợp PayOS gửi webhook xác nhận Webhook URL khi cấu hình trên Dashboard
+        if "webhookUrl" in payload:
+            logger.info(f"[PayOS Webhook] Xác nhận Webhook URL thành công: {payload.get('webhookUrl')}")
+            return {"success": True, "message": "Webhook URL verified"}
+
         success = payment_service.verify_and_process_webhook(payload)
         return {"success": success, "message": "Webhook processed successfully"}
     except Exception as exc:

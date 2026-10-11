@@ -182,7 +182,11 @@ export function VietQRPaymentModal({ isOpen, onClose, orderData, onPaymentSucces
             <div>
               <div className="vietqr-qr-frame">
                 <img
-                  src={orderData.qr_code}
+                  src={
+                    orderData.qr_code?.startsWith('http')
+                      ? orderData.qr_code
+                      : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(orderData.qr_code || '')}`
+                  }
                   alt="Mã QR chuyển khoản VietQR"
                   className="vietqr-qr-img"
                 />

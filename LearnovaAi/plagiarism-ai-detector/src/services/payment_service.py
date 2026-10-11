@@ -182,11 +182,40 @@ class PaymentService:
                 if resp.status_code == 200 and res_json.get("code") == "00":
                     data = res_json.get("data", {})
                     checkout_url = data.get("checkoutUrl")
-                    qr_code = data.get("qrCode")
                     account_number = data.get("accountNumber")
                     account_name = data.get("accountName")
-                    bank_name = data.get("bin")
+                    bin_code = str(data.get("bin") or "970452")
                     payos_link_id = data.get("paymentLinkId")
+
+                    bin_map = {
+                        "970452": "KienlongBank (PayOS)",
+                        "970422": "MB Bank (Quân Đội)",
+                        "970415": "VietinBank",
+                        "970436": "Vietcombank",
+                        "970407": "Techcombank",
+                        "970418": "BIDV",
+                        "970405": "Agribank",
+                        "970423": "TPBank",
+                        "970432": "VPBank",
+                        "970416": "ACB",
+                    }
+                    bank_name = bin_map.get(bin_code, f"Ngân hàng (BIN {bin_code})")
+
+                    # Tạo ảnh chuẩn VietQR NAPAS 247 đẹp mắt
+                    if bin_code and account_number:
+                        acc_encoded = (account_name or "").replace(" ", "%20")
+                        qr_code = (
+                            f"https://img.vietqr.io/image/{bin_code}-{account_number}-compact2.png"
+                            f"?amount={amount}&addInfo={payment_content}&accountName={acc_encoded}"
+                        )
+                    else:
+                        raw_qr = data.get("qrCode", "")
+                        qr_code = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={raw_qr}"
+
+                    logger.info(
+                        f"[PayOS] Đã tạo thành công đơn hàng {order_code} "
+                        f"(STK: {account_number}, Bank: {bank_name})"
+                    )
                 else:
                     logger.error(f"[PayOS] Lỗi trả về: {res_json}")
                     is_simulation = True
@@ -208,7 +237,7 @@ class PaymentService:
             account_name = account_name or "CONG TY LEARNOVAAI"
             bank_name = bank_name or "MB Bank (Ngân hàng Quân Đội)"
             qr_code = (
-                f"https://img.vietqr.io/image/MB-{account_number}-compact2.png"
+                f"https://img.vietqr.io/image/970422-{account_number}-compact2.png"
                 f"?amount={amount}&addInfo={payment_content}&accountName={account_name.replace(' ', '%20')}"
             )
 
