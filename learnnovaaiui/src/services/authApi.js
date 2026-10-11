@@ -6,6 +6,31 @@ import apiClient from './apiClient';
  */
 export const authApi = {
   /**
+   * Gửi mã OTP xác minh (6 số) về email người dùng
+   * @param {Object} payload { email, purpose }
+   */
+  sendOtp: async (payload) => {
+    return apiClient.post('/api/v1/auth/send-otp', {
+      email: payload.email,
+      purpose: payload.purpose || 'signup',
+    });
+  },
+
+  /**
+   * Xác thực mã OTP 6 số và hoàn tất đăng ký tài khoản
+   * @param {Object} payload { email, otp_code, password, full_name, avatar_url }
+   */
+  verifyOtpSignUp: async (payload) => {
+    return apiClient.post('/api/v1/auth/verify-otp-signup', {
+      email: payload.email,
+      otp_code: payload.otp_code,
+      password: payload.password,
+      full_name: payload.full_name || null,
+      avatar_url: payload.avatar_url || null,
+    });
+  },
+
+  /**
    * Đăng ký tài khoản người dùng mới
    * @param {Object} payload { email, password, full_name, avatar_url }
    */

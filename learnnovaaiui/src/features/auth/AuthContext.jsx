@@ -60,6 +60,23 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const sendOtp = async (email, purpose = 'signup') => {
+    return authApi.sendOtp({ email, purpose });
+  };
+
+  const verifyOtpSignUp = async ({ email, otp_code, password, full_name, avatar_url }) => {
+    const res = await authApi.verifyOtpSignUp({ email, otp_code, password, full_name, avatar_url });
+    if (res && res.access_token) {
+      localStorage.setItem('learnova_token', res.access_token);
+      setToken(res.access_token);
+      if (res.user) {
+        setUser(res.user);
+        localStorage.setItem('learnova_user', JSON.stringify(res.user));
+      }
+    }
+    return res;
+  };
+
   const signUp = async ({ email, password, full_name, avatar_url }) => {
     const res = await authApi.signUp({ email, password, full_name, avatar_url });
     if (res && res.access_token) {
@@ -95,6 +112,8 @@ export function AuthProvider({ children }) {
     isLoading,
     signIn,
     signUp,
+    sendOtp,
+    verifyOtpSignUp,
     signOut,
     setUser,
     updateWordsBalance,

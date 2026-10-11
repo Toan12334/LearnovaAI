@@ -14,11 +14,65 @@ from src.models.auth import (
     RefreshTokenRequest,
     UserProfileResponse,
     SignOutResponse,
+    SendOtpRequest,
+    SendOtpResponse,
+    VerifyOtpSignUpRequest,
 )
 from src.services.auth_service import auth_service
 from src.core.security import get_current_user
 
 router = APIRouter()
+
+
+@router.post(
+    "/send-otp",
+    response_model=SendOtpResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Gửi mã OTP 6 số xác thực về email đăng ký",
+)
+def send_otp(payload: SendOtpRequest):
+    """
+    Gửi mã OTP 6 số ngẫu nhiên tới email người dùng.
+    Mã có hiệu lực trong 5 phút. Cooldown 60 giây giữa các lần gửi.
+    """
+    try:
+        return auth_service.send_registration_otp(payload)
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi khi gửi mã OTP: {str(e)}",
+        )
+
+
+@router.post(
+    "/verify-otp-signup",
+    response_model=TokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Xác thực OTP 6 số và hoàn tất đăng ký tài khoản",
+)
+def verify_otp_signup(payload: VerifyOtpSignUpRequest):
+    """
+    Kiểm tra mã OTP 6 số. Nếu hợp lệ, tự động kích hoạt tài khoản,
+    tặng 5.000 từ miễn phí và cấp phát JWT token để đăng nhập ngay.
+    """
+    try:
+        return auth_service.verify_otp_and_sign_up(payload)
+    except ValueError as ve:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi khi xác thực OTP: {str(e)}",
+        )
+
 
 
 @router.post(
@@ -87,7 +141,7 @@ def get_my_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
         full_name=current_user.get("full_name"),
         avatar_url=current_user.get("avatar_url"),
         role=current_user.get("role") or "user",
-        words_balance=current_user.get("words_balance", 10000),
+        words_balance=current_user.get("words_balance", 5000),
         organization_id=current_user.get("organization_id"),
         created_at=current_user.get("created_at"),
     )

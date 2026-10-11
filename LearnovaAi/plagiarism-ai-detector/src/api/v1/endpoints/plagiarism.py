@@ -44,7 +44,7 @@ async def check_plagiarism(
         word_count = cleaner.count_words(content)
 
         # Kiểm tra hạn mức từ khả dụng
-        words_balance = current_user.get("words_balance", 10000)
+        words_balance = current_user.get("words_balance", 5000)
         if words_balance is not None and words_balance < word_count:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -122,7 +122,7 @@ async def check_plagiarism_async(
         word_count = cleaner.count_words(content)
 
         # Kiểm tra hạn mức từ khả dụng
-        words_balance = current_user.get("words_balance", 10000)
+        words_balance = current_user.get("words_balance", 5000)
         if words_balance is not None and words_balance < word_count:
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,

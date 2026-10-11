@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { HomePage, HistoryPage, ReportPage } from './pages';
 import { AuthProvider, AuthModal } from './features/auth';
+import { PricingModal } from './features/payment';
 
 import { useAuth } from './features/auth';
 
@@ -10,21 +11,35 @@ function AppContent() {
   const [selectedReportId, setSelectedReportId] = useState('REP-2026-001');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  // Tự động lắng nghe sự kiện khi một tác vụ cần đăng nhập
+  // Tự động lắng nghe sự kiện khi một tác vụ cần đăng nhập hoặc cần nạp từ
   React.useEffect(() => {
     const handleAuthRequired = () => {
       setAuthMode('signin');
       setIsAuthOpen(true);
     };
+    const handlePricingRequired = () => {
+      setIsPricingOpen(true);
+    };
+
     window.addEventListener('learnova:auth-required', handleAuthRequired);
-    return () => window.removeEventListener('learnova:auth-required', handleAuthRequired);
+    window.addEventListener('learnova:pricing-required', handlePricingRequired);
+
+    return () => {
+      window.removeEventListener('learnova:auth-required', handleAuthRequired);
+      window.removeEventListener('learnova:pricing-required', handlePricingRequired);
+    };
   }, []);
 
   const handleOpenAuth = (mode = 'signin') => {
     setAuthMode(mode);
     setIsAuthOpen(true);
+  };
+
+  const handleOpenPricing = () => {
+    setIsPricingOpen(true);
   };
 
   const handleNavigate = (page) => {
@@ -47,12 +62,17 @@ function AppContent() {
         currentPage={currentPage}
         onNavigate={handleNavigate}
         onOpenAuth={handleOpenAuth}
+        onOpenPricing={handleOpenPricing}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentPage === 'home' && <HomePage onOpenAuth={handleOpenAuth} />}
-        {currentPage === 'history' && <HistoryPage onSelectReport={handleSelectReport} onOpenAuth={handleOpenAuth} />}
+        {currentPage === 'home' && (
+          <HomePage onOpenAuth={handleOpenAuth} onOpenPricing={handleOpenPricing} />
+        )}
+        {currentPage === 'history' && (
+          <HistoryPage onSelectReport={handleSelectReport} onOpenAuth={handleOpenAuth} />
+        )}
         {currentPage === 'report' && (
           <ReportPage reportId={selectedReportId} onBack={() => setCurrentPage('history')} />
         )}
@@ -63,6 +83,13 @@ function AppContent() {
         isOpen={isAuthOpen}
         initialMode={authMode}
         onClose={() => setIsAuthOpen(false)}
+      />
+
+      {/* Pricing & PayOS VietQR Modal */}
+      <PricingModal
+        isOpen={isPricingOpen}
+        onClose={() => setIsPricingOpen(false)}
+        onOpenAuth={handleOpenAuth}
       />
 
       {/* Modern Footer */}

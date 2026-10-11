@@ -2,13 +2,14 @@ import React from 'react';
 import { LogOut, User, LogIn, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../features/auth';
 
-export function Navbar({ currentPage, onNavigate, onOpenAuth }) {
+export function Navbar({ currentPage, onNavigate, onOpenAuth, onOpenPricing }) {
   const { user, isAuthenticated, signOut } = useAuth();
 
   const navItems = [
     { id: 'home', label: 'Trang chủ' },
     { id: 'history', label: 'Lịch sử tra cứu' },
     { id: 'report', label: 'Báo cáo mẫu' },
+    { id: 'pricing', label: 'Bảng giá' },
   ];
 
   return (
@@ -40,7 +41,13 @@ export function Navbar({ currentPage, onNavigate, onOpenAuth }) {
             return (
               <button
                 key={item.id}
-                onClick={() => onNavigate(item.id)}
+                onClick={() => {
+                  if (item.id === 'pricing') {
+                    if (onOpenPricing) onOpenPricing();
+                  } else {
+                    onNavigate(item.id);
+                  }
+                }}
                 className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
                   isActive
                     ? 'bg-white text-indigo-600 shadow-sm shadow-slate-200 border border-slate-200/50'
@@ -69,14 +76,17 @@ export function Navbar({ currentPage, onNavigate, onOpenAuth }) {
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2">
               {/* Words Balance Badge */}
-              <div
-                title="Hạn mức từ khả dụng để kiểm tra đạo văn"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 text-indigo-800 text-xs font-bold shadow-xs"
+              <button
+                type="button"
+                onClick={onOpenPricing}
+                title="Bấm để nạp thêm gói từ kiểm tra qua VietQR"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200/80 text-indigo-800 text-xs font-bold shadow-xs transition-all cursor-pointer group"
               >
-                <span className="text-amber-500 font-black text-sm">⚡</span>
-                <span>{(user.words_balance ?? 10000).toLocaleString('vi-VN')}</span>
+                <span className="text-amber-500 font-black text-sm group-hover:scale-110 transition-transform">⚡</span>
+                <span>{(user.words_balance ?? 5000).toLocaleString('vi-VN')}</span>
                 <span className="text-[10px] font-semibold text-indigo-500 uppercase">từ</span>
-              </div>
+                <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold group-hover:bg-indigo-700 transition-colors">+ Nạp</span>
+              </button>
 
               {/* User Profile Pill */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">

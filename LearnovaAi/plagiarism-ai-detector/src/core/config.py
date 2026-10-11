@@ -44,6 +44,27 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str | None = None
 
+    # Resend.com Configuration (Khuyên dùng số 1 - Tỷ lệ vào Inbox 99.8%)
+    RESEND_API_KEY: str | None = None
+    RESEND_FROM_EMAIL: str = "LearnovaAI <onboarding@resend.dev>"
+
+    # SMTP & Email Settings (Fallback: Gmail, Brevo, SendGrid, Amazon SES)
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM_EMAIL: str = "noreply@learnova.ai"
+    SMTP_FROM_NAME: str = "LearnovaAI"
+    SMTP_USE_TLS: bool = True
+    OTP_EXPIRE_MINUTES: int = 5
+
+    # PayOS VietQR Payment Gateway (payos.vn)
+    PAYOS_CLIENT_ID: str | None = None
+    PAYOS_API_KEY: str | None = None
+    PAYOS_CHECKSUM_KEY: str | None = None
+    PAYOS_RETURN_URL: str = "https://103.178.235.88.sslip.io"
+    PAYOS_CANCEL_URL: str = "https://103.178.235.88.sslip.io"
+
     # Search APIs
     SEARCH_API_KEY: str | None = None
     SEARCH_ENGINE_ID: str | None = None

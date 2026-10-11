@@ -15,7 +15,11 @@ from src.models.auth import (
     SignInRequest,
     TokenResponse,
     UserProfileResponse,
+    SendOtpRequest,
+    SendOtpResponse,
+    VerifyOtpSignUpRequest,
 )
+from src.services.email_service import email_service
 
 
 class AuthService:
@@ -25,6 +29,138 @@ class AuthService:
     @property
     def supabase(self):
         return get_supabase_client()
+
+    def send_registration_otp(self, payload: SendOtpRequest) -> SendOtpResponse:
+        """
+        Gửi mã OTP 6 số xác thực về email người dùng khi đăng ký.
+        """
+        email = payload.email.strip().lower()
+
+        # Kiểm tra xem email đã tồn tại trong profiles hoặc auth.users chưa
+        try:
+            p_check = self.supabase.table("profiles").select("id").eq("email", email).execute()
+            if p_check.data:
+                raise ValueError("Email này đã được đăng ký tài khoản. Vui lòng đăng nhập.")
+        except ValueError:
+            raise
+        except Exception:
+            pass
+
+        admin_client = get_supabase_admin_client()
+        if admin_client:
+            try:
+                users_list = admin_client.auth.admin.list_users()
+                if users_list and hasattr(users_list, "users"):
+                    for u in users_list.users:
+                        if u.email and u.email.lower() == email:
+                            raise ValueError("Email này đã được đăng ký tài khoản. Vui lòng đăng nhập.")
+            except ValueError:
+                raise
+            except Exception:
+                pass
+
+        res = email_service.send_signup_otp(email)
+        return SendOtpResponse(
+            message=res["message"],
+            email=res["email"],
+            expires_in_seconds=res["expires_in_seconds"],
+            debug_otp=res.get("debug_otp"),
+        )
+
+    def verify_otp_and_sign_up(self, payload: VerifyOtpSignUpRequest) -> TokenResponse:
+        """
+        Xác thực mã OTP 6 số và tạo tài khoản đã kích hoạt kèm 5.000 từ miễn phí.
+        """
+        email = payload.email.strip().lower()
+        full_name = payload.full_name.strip() if payload.full_name else None
+        avatar_url = payload.avatar_url.strip() if payload.avatar_url else None
+
+        # 1. Xác minh mã OTP
+        email_service.verify_otp(email, payload.otp_code, purpose="signup")
+
+        # 2. Tạo tài khoản trong auth.users với email_confirm = True
+        user = None
+        admin_client = get_supabase_admin_client()
+        if admin_client:
+            try:
+                admin_res = admin_client.auth.admin.create_user({
+                    "email": email,
+                    "password": payload.password,
+                    "email_confirm": True,
+                    "user_metadata": {
+                        "full_name": full_name or "",
+                        "avatar_url": avatar_url or "",
+                    },
+                })
+                if admin_res and admin_res.user:
+                    user = admin_res.user
+            except Exception as ae:
+                ae_msg = str(ae)
+                if "already registered" in ae_msg.lower() or "user already exists" in ae_msg.lower():
+                    raise ValueError("Email này đã được đăng ký trong hệ thống. Vui lòng đăng nhập.")
+                raise ValueError(f"Không thể tạo tài khoản: {ae_msg}")
+
+        if not user:
+            try:
+                res = self.supabase.auth.sign_up({
+                    "email": email,
+                    "password": payload.password,
+                    "options": {"data": {"full_name": full_name or "", "avatar_url": avatar_url or ""}}
+                })
+                if res and res.user:
+                    user = res.user
+            except Exception as e:
+                raise ValueError(f"Lỗi đăng ký tài khoản: {e}")
+
+        if not user:
+            raise ValueError("Không thể tạo tài khoản người dùng.")
+
+        user_id = str(user.id)
+
+        # 3. Tạo bản ghi profiles với words_balance = 5000
+        try:
+            profile_data = {
+                "id": user_id,
+                "full_name": full_name,
+                "avatar_url": avatar_url,
+                "role": "user",
+                "words_balance": 5000,
+            }
+            self.supabase.table("profiles").upsert(profile_data).execute()
+        except Exception as pe:
+            logger.warning(f"Lỗi tạo profile cho user {user_id}: {pe}")
+
+        # 4. Sinh JWT access token
+        access_jwt = create_access_token(
+            data={
+                "sub": user_id,
+                "email": email,
+                "role": "authenticated",
+                "user_metadata": {
+                    "full_name": full_name,
+                    "avatar_url": avatar_url,
+                },
+            },
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+
+        user_profile = UserProfileResponse(
+            id=user_id,
+            email=email,
+            full_name=full_name,
+            avatar_url=avatar_url,
+            role="user",
+            words_balance=5000,
+            organization_id=None,
+            created_at=str(user.created_at) if hasattr(user, "created_at") else None,
+        )
+
+        return TokenResponse(
+            access_token=access_jwt,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            user=user_profile,
+        )
 
     def sign_up(self, payload: SignUpRequest) -> SignUpResponse:
         """
@@ -190,7 +326,7 @@ class AuthService:
         full_name = None
         avatar_url = None
         role = "user"
-        words_balance = 10000
+        words_balance = 5000
         organization_id = None
         created_at = str(user.created_at) if hasattr(user, "created_at") else None
 
@@ -207,7 +343,7 @@ class AuthService:
                 full_name = prof.get("full_name")
                 avatar_url = prof.get("avatar_url")
                 role = prof.get("role") or "user"
-                words_balance = prof.get("words_balance") if prof.get("words_balance") is not None else 10000
+                words_balance = prof.get("words_balance") if prof.get("words_balance") is not None else 5000
                 organization_id = prof.get("organization_id")
                 if prof.get("created_at"):
                     created_at = str(prof["created_at"])

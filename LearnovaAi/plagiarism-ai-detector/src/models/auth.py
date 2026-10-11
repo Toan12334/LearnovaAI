@@ -9,6 +9,49 @@ from pydantic import BaseModel, Field, field_validator
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
 
+class SendOtpRequest(BaseModel):
+    email: str = Field(..., description="Email nhận mã OTP xác thực")
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, v: str) -> str:
+        clean = v.strip().lower()
+        if not EMAIL_REGEX.match(clean):
+            raise ValueError("Địa chỉ email không đúng định dạng.")
+        return clean
+
+
+class SendOtpResponse(BaseModel):
+    message: str
+    email: str
+    expires_in_seconds: int = 300
+    debug_otp: Optional[str] = None
+
+
+class VerifyOtpSignUpRequest(BaseModel):
+    email: str = Field(..., description="Email đã nhận mã OTP")
+    otp_code: str = Field(..., min_length=6, max_length=6, description="Mã OTP 6 chữ số")
+    password: str = Field(..., min_length=6, description="Mật khẩu tài khoản (tối thiểu 6 ký tự)")
+    full_name: Optional[str] = Field(default=None, max_length=150, description="Họ và tên hiển thị")
+    avatar_url: Optional[str] = Field(default=None, description="URL ảnh đại diện")
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, v: str) -> str:
+        clean = v.strip().lower()
+        if not EMAIL_REGEX.match(clean):
+            raise ValueError("Địa chỉ email không đúng định dạng.")
+        return clean
+
+    @field_validator("otp_code")
+    @classmethod
+    def validate_otp_format(cls, v: str) -> str:
+        clean = v.strip()
+        if not clean.isdigit() or len(clean) != 6:
+            raise ValueError("Mã OTP phải gồm đúng 6 chữ số.")
+        return clean
+
+
 class SignUpRequest(BaseModel):
     email: str = Field(..., description="Email đăng ký tài khoản (ví dụ: user@learnova.ai)")
     password: str = Field(..., min_length=6, description="Mật khẩu tối thiểu 6 ký tự")
@@ -43,7 +86,7 @@ class UserProfileResponse(BaseModel):
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     role: Optional[str] = "user"
-    words_balance: Optional[int] = 10000
+    words_balance: Optional[int] = 5000
     organization_id: Optional[str] = None
     created_at: Optional[str] = None
 

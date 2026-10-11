@@ -126,19 +126,19 @@ async def get_current_user(
             user_info["full_name"] = prof.get("full_name")
             user_info["avatar_url"] = prof.get("avatar_url")
             user_info["role"] = prof.get("role") or "user"
-            user_info["words_balance"] = prof.get("words_balance") if prof.get("words_balance") is not None else 10000
+            user_info["words_balance"] = prof.get("words_balance") if prof.get("words_balance") is not None else 5000
             user_info["organization_id"] = prof.get("organization_id")
             user_info["created_at"] = prof.get("created_at")
         else:
             user_info["full_name"] = user_info["user_metadata"].get("full_name")
             user_info["avatar_url"] = user_info["user_metadata"].get("avatar_url")
             user_info["role"] = "user"
-            user_info["words_balance"] = 10000
+            user_info["words_balance"] = 5000
             user_info["organization_id"] = None
     except Exception as e:
         logger.warning(f"Không thể truy vấn bảng profiles cho user {user_info['id']}: {e}")
         user_info["role"] = "user"
-        user_info["words_balance"] = 10000
+        user_info["words_balance"] = 5000
         user_info["organization_id"] = None
 
     return user_info

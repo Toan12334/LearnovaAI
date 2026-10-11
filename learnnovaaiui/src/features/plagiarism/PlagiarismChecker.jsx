@@ -5,7 +5,7 @@ import { TimestampAudit } from './components/TimestampAudit';
 import { plagiarismApi } from '../../services/plagiarismApi';
 import { historyService } from '../../services/historyService';
 import { useAuth } from '../auth';
-import { AlertCircle, RefreshCw, X, Lock } from 'lucide-react';
+import { AlertCircle, RefreshCw, X, Lock, Zap } from 'lucide-react';
 
 export function PlagiarismChecker({ onOpenAuth }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -140,7 +140,7 @@ export function PlagiarismChecker({ onOpenAuth }) {
               <div className="text-sm font-bold text-white flex items-center gap-2">
                 Yêu cầu đăng nhập để khởi chạy kiểm tra
                 <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-md border border-amber-400/30">
-                  Tặng 10.000 từ
+                  Tặng 5.000 từ
                 </span>
               </div>
               <p className="text-xs text-indigo-200/80 mt-0.5">
@@ -177,6 +177,16 @@ export function PlagiarismChecker({ onOpenAuth }) {
                 Lỗi xử lý API Kiểm tra Đạo văn:
               </h4>
               <p className="text-sm font-medium leading-relaxed">{apiError}</p>
+              {apiError.toLowerCase().includes('số dư') && (
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent('learnova:pricing-required'))}
+                  className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                  <span>Nạp thêm gói từ ngay qua VietQR</span>
+                </button>
+              )}
               {import.meta.env.DEV ? (
                 <p className="text-xs text-rose-600/80 mt-2 font-medium">
                   💡 Hãy đảm bảo FastAPI Backend đang chạy tại <code className="bg-rose-100 px-1.5 py-0.5 rounded font-mono text-rose-900">http://localhost:8000</code>.
