@@ -25,6 +25,8 @@ from src.utils.text_cleaner import TextCleaner
 from src.services.embedding import embedding_service
 from src.services.search.web_search import web_search_service
 from src.services.plagiarism.winnowing import WinnowingDetector
+from src.services.plagiarism.qdrant_cache import internet_qdrant_cache
+from src.services.plagiarism.web_scraper import web_scraper
 
 
 class PlagiarismPipeline:
@@ -245,14 +247,50 @@ class PlagiarismPipeline:
                             m_type = "EXACT" if score >= 0.90 else "PARAPHRASED"
 
                         if is_exact_match or word_overlap >= 0.65 or score >= threshold:
+                            web_url = web_item.get("url")
+                            deep_matched_text = snippet or title
+
+                            # Deep Web Verification: Cache lookup in Qdrant before scraping
+                            if web_url and (score >= 0.70 or word_overlap >= 0.55):
+                                try:
+                                    # 1. Tra cứu Qdrant Cache trước (Cache Lookup O(1))
+                                    cached_doc = internet_qdrant_cache.get_cached_url_content(web_url)
+                                    if not cached_doc:
+                                        # 2. Nếu chưa có, cào web qua trafilatura + TextCleaner
+                                        cached_doc = web_scraper.scrape_single_url_sync(web_url)
+                                        if cached_doc:
+                                            # Lưu vào Qdrant cache để tái sử dụng
+                                            internet_qdrant_cache.store_url_content_sync(
+                                                web_url, cached_doc, self.embedder
+                                            )
+
+                                    # 3. So khớp sâu trực tiếp với câu nguyên bản trong trang web đã làm sạch
+                                    if cached_doc:
+                                        doc_sentences = self.cleaner.clean_and_split(cached_doc, min_length=12)
+                                        for s_cand in doc_sentences:
+                                            s_cand_clean = re.sub(r"[^\w\s]", "", s_cand.lower()).strip()
+                                            if chunk_clean == s_cand_clean or (chunk_clean and chunk_clean in s_cand_clean):
+                                                score = 1.0
+                                                m_type = "EXACT"
+                                                deep_matched_text = s_cand
+                                                break
+                                            w_cand_sim = self.winnowing.calculate_similarity(chunk_text, s_cand)
+                                            if w_cand_sim >= 0.75:
+                                                score = 1.0
+                                                m_type = "EXACT"
+                                                deep_matched_text = s_cand
+                                                break
+                                except Exception as deep_err:
+                                    logger.debug(f"Deep web verification error for {web_url}: {deep_err}")
+
                             if score > best_score:
                                 best_score = score
                                 best_match = {
                                     "chunk_id": chunk_id,
                                     "source_type": "web",
                                     "matched_document_id": None,
-                                    "matched_url": web_item.get("url"),
-                                    "matched_text": snippet or title,
+                                    "matched_url": web_url,
+                                    "matched_text": deep_matched_text,
                                     "similarity_score": round(best_score, 4),
                                     "match_type": m_type,
                                 }
@@ -271,6 +309,7 @@ class PlagiarismPipeline:
         user_id: Optional[str] = None,
         enable_web_search: bool = True,
         similarity_threshold: Optional[float] = None,
+        document_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Thực thi tuần tự toàn bộ 6 bước đối soát đạo văn.
@@ -282,49 +321,60 @@ class PlagiarismPipeline:
             else settings.PLAGIARISM_SIMILARITY_THRESHOLD
         )
 
-        logger.info(f"=== BẮT ĐẦU PIPELINE ĐỐI SOÁT ĐẠO VĂN (user_id={user_id}) ===")
+        logger.info(f"=== BẮT ĐẦU PIPELINE ĐỐI SOÁT ĐẠO VĂN (user_id={user_id}, doc_id={document_id}) ===")
 
         # -------------------------------------------------------------
-        # BƯỚC 1: Lưu bài viết gốc vào Supabase documents (pending)
+        # BƯỚC 1: Lưu hoặc Cập nhật bài viết trong Supabase documents (pending/processing)
         # -------------------------------------------------------------
-        logger.info("Bước 1: Lưu bài viết gốc vào bảng 'documents' (Supabase)...")
         word_count = self.cleaner.count_words(content)
-        doc_payload = {
-            "title": title or "Untitled Document",
-            "content": content,
-            "word_count": word_count,
-            "plagiarism_score": 0.0,
-            "ai_score": 0.0,
-            "status": "pending",
-        }
-        is_valid_uuid = False
-        if user_id:
+        if document_id:
+            logger.info(f"Bước 1: Tái sử dụng Document ID đã cấp phát: {document_id}")
             try:
-                uuid.UUID(str(user_id))
-                is_valid_uuid = True
-            except ValueError:
-                is_valid_uuid = False
+                self.supabase.table("documents").update({
+                    "title": title or "Untitled Document",
+                    "word_count": word_count,
+                    "status": "processing",
+                }).eq("id", document_id).execute()
+            except Exception as e:
+                logger.warning(f"Lỗi cập nhật documents ban đầu cho {document_id}: {e}")
+        else:
+            logger.info("Bước 1: Lưu bài viết gốc vào bảng 'documents' (Supabase)...")
+            doc_payload = {
+                "title": title or "Untitled Document",
+                "content": content,
+                "word_count": word_count,
+                "plagiarism_score": 0.0,
+                "ai_score": 0.0,
+                "status": "pending",
+            }
+            is_valid_uuid = False
+            if user_id:
+                try:
+                    uuid.UUID(str(user_id))
+                    is_valid_uuid = True
+                except ValueError:
+                    is_valid_uuid = False
 
-        if user_id and is_valid_uuid:
-            doc_payload["user_id"] = str(user_id)
+            if user_id and is_valid_uuid:
+                doc_payload["user_id"] = str(user_id)
 
-        try:
-            doc_res = self.supabase.table("documents").insert(doc_payload).execute()
-        except Exception as e:
-            # Nếu user_id chưa có trong auth.users (FK constraint 23503) hoặc lỗi kiểu dữ liệu
-            if "user_id" in doc_payload:
-                logger.warning(f"user_id '{user_id}' không hợp lệ hoặc chưa có trong auth.users, lưu document với user_id=None")
-                doc_payload.pop("user_id", None)
+            try:
                 doc_res = self.supabase.table("documents").insert(doc_payload).execute()
-            else:
-                raise e
+            except Exception as e:
+                if "user_id" in doc_payload:
+                    logger.warning(f"user_id '{user_id}' không hợp lệ hoặc chưa có trong auth.users, lưu document với user_id=None")
+                    doc_payload.pop("user_id", None)
+                    doc_res = self.supabase.table("documents").insert(doc_payload).execute()
+                else:
+                    raise e
 
-        if not doc_res.data:
-            raise RuntimeError("Không thể tạo record trong bảng 'documents'")
+            if not doc_res.data:
+                raise RuntimeError("Không thể tạo record trong bảng 'documents'")
 
-        document_record = doc_res.data[0]
-        document_id = document_record["id"]
-        logger.info(f"-> Tạo thành công Document ID: {document_id}")
+            document_record = doc_res.data[0]
+            document_id = document_record["id"]
+            logger.info(f"-> Tạo thành công Document ID: {document_id}")
+
         self.update_job_progress(document_id, 15, "Đã lưu bài viết gốc vào cơ sở dữ liệu")
 
         # -------------------------------------------------------------
@@ -385,10 +435,10 @@ class PlagiarismPipeline:
         chunk_texts = [c["content"] for c in saved_chunks]
         vectors = self.embedder.embed_texts(chunk_texts)
         logger.info(f"-> Đã sinh {len(vectors)} vectors (dim={len(vectors[0]) if vectors else 0}).")
-        self.update_job_progress(document_id, 60, f"Đã sinh {len(vectors)} vector ngữ nghĩa")
+        self.update_job_progress(document_id, 50, f"Đã sinh {len(vectors)} vector ngữ nghĩa")
 
         # -------------------------------------------------------------
-        # BƯỚC 5: Lưu kho Qdrant
+        # BƯỚC 5: Lưu kho Qdrant & Chuẩn bị Quét Nguồn Web
         # -------------------------------------------------------------
         logger.info("Bước 5: Đẩy vectors kèm chunk_id và metadata vào Qdrant...")
         points = [
@@ -407,7 +457,7 @@ class PlagiarismPipeline:
         ]
         upsert_ok = self.qdrant.upsert_chunks(points)
         logger.info(f"-> Lưu kho Qdrant: {'Thành công' if upsert_ok else 'Gặp lỗi/Fallback'}")
-        self.update_job_progress(document_id, 75, "Đã lập chỉ mục vào Vector Database")
+        self.update_job_progress(document_id, 60, "Đang tải và phân tích nguồn web gốc (60%)...")
 
         # -------------------------------------------------------------
         # BƯỚC 6: Đối soát (Qdrant & Serper) và lưu vào plagiarism_matches [ĐA LUỒNG]

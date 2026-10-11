@@ -84,20 +84,103 @@ class AsyncWebScraper:
 
     @staticmethod
     def _extract_main_text(html: str) -> str:
-        """Extract article body text using trafilatura."""
-        if not trafilatura:
-            logger.warning("trafilatura is unavailable; falling back to empty text.")
+        """
+        Extract clean article body text using trafilatura (strips ads, menu, footer, nav),
+        then post-process and normalize Unicode NFC using TextCleaner.
+        """
+        if not html:
             return ""
+        extracted = ""
+        if trafilatura:
+            try:
+                extracted = (
+                    trafilatura.extract(
+                        html,
+                        include_comments=False,
+                        include_tables=False,
+                        include_images=False,
+                        no_fallback=False,
+                        output_format="txt",
+                    )
+                    or ""
+                )
+            except Exception as exc:
+                logger.debug("Trafilatura extraction error: %s", exc)
+
+        # Fallback to BeautifulSoup if trafilatura extraction is empty or too short
+        if not extracted or len(extracted.strip()) < 50:
+            try:
+                from bs4 import BeautifulSoup
+
+                soup = BeautifulSoup(html, "html.parser")
+                for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript", "svg"]):
+                    tag.decompose()
+                extracted = soup.get_text(separator="\n")
+            except Exception:
+                extracted = html
+
+        # Post-clean with TextCleaner: Unbreak PDF/web line-wraps, remove extra spaces, normalize Vietnamese NFC
         try:
-            return trafilatura.extract(html, include_comments=False, include_tables=False) or ""
+            from src.utils.text_cleaner import TextCleaner
+
+            cleaned = TextCleaner.clean_extracted_document_text(extracted)
+            return TextCleaner.normalize_vietnamese(cleaned)
+        except Exception:
+            return extracted.strip()
+
+    def scrape_single_url_sync(self, url: str) -> str:
+        """
+        Synchronously scrape and extract clean text from a single URL.
+        1. Checks RAM cache
+        2. Checks Qdrant Cache (Zero HTTP overhead)
+        3. Falls back to fast HTTP GET with trafilatura extraction
+        """
+        if not url:
+            return ""
+
+        # 1. RAM Cache Lookup
+        if url in self._content_cache:
+            return self._content_cache[url]
+
+        # 2. Qdrant Cache Lookup
+        try:
+            from src.services.plagiarism.qdrant_cache import internet_qdrant_cache
+
+            qdrant_cached = internet_qdrant_cache.get_cached_url_content(url)
+            if qdrant_cached:
+                self._content_cache[url] = qdrant_cached
+                return qdrant_cached
+        except Exception as e:
+            logger.debug("Lỗi tra cứu Qdrant cache cho URL '%s': %s", url, e)
+
+        # 3. HTTP GET Fallback
+        client_headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 "
+                "LearnovaPlagiarismBot/1.0"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "vi,en-US;q=0.9,en;q=0.8",
+        }
+        try:
+            with httpx.Client(timeout=8.0, follow_redirects=True) as client:
+                resp = client.get(url, headers=client_headers)
+                resp.raise_for_status()
+                content = self._extract_main_text(resp.text)
+                if content:
+                    self._content_cache[url] = content
+                return content
         except Exception as exc:
-            logger.debug("Trafilatura extraction error: %s", exc)
+            logger.info("Không thể cào đồng bộ URL '%s': %s", url, exc)
             return ""
 
     async def scrape_web_content(self, urls: List[str]) -> Dict[str, str]:
         """
-        Scrape main text from candidate URLs concurrently using httpx and trafilatura.
-        Stores and retrieves results from in-memory RAM cache.
+        Scrape main text from candidate URLs concurrently.
+        1. Checks in-memory RAM cache
+        2. Checks Qdrant Vector Cache (Cache Lookup O(1))
+        3. Only performs HTTP GET for previously unseen URLs
         """
         if not urls:
             return {}
@@ -115,10 +198,22 @@ class AsyncWebScraper:
         }
 
         async def scrape_single_url(client: httpx.AsyncClient, url: str) -> tuple[str, str]:
-            # Check RAM cache first
+            # 1. RAM Cache check
             if url in self._content_cache:
                 return url, self._content_cache[url]
 
+            # 2. Qdrant Cache Lookup (Save 2-3s HTTP roundtrip)
+            try:
+                from src.services.plagiarism.qdrant_cache import internet_qdrant_cache
+
+                qdrant_cached = await asyncio.to_thread(internet_qdrant_cache.get_cached_url_content, url)
+                if qdrant_cached:
+                    self._content_cache[url] = qdrant_cached
+                    return url, qdrant_cached
+            except Exception as e:
+                logger.debug("Lỗi tra cứu Qdrant cache cho '%s': %s", url, e)
+
+            # 3. HTTP GET Fetch
             async with semaphore:
                 try:
                     response = await client.get(url, headers=client_headers)
@@ -132,7 +227,7 @@ class AsyncWebScraper:
                     logger.info("Could not scrape URL '%s': %s", url, exc)
                     return url, ""
 
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
             pairs = await asyncio.gather(*(scrape_single_url(client, u) for u in urls))
 
         return {url: content for url, content in pairs if content}

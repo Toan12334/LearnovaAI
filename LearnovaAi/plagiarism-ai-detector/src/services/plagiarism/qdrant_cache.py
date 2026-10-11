@@ -86,5 +86,58 @@ class InternetQdrantCache:
         except Exception as exc:
             logger.warning("Failed to store internet sentences in Qdrant: %s", exc)
 
+    def get_cached_url_content(self, url: str) -> Optional[str]:
+        """
+        Tra cứu Qdrant Cache theo URL (Cache Lookup O(1)).
+        Nếu URL này đã từng cào và lưu trong Qdrant collection, ghép các chunks lại thành văn bản hoàn chỉnh.
+        Nếu chưa có trong Cache, trả về None để tiến hành cào mới.
+        """
+        if not url:
+            return None
+        try:
+            points = qdrant_service.get_points_by_url(url, collection_name=self.collection_name)
+            if points:
+                combined = "\n".join(p["content"] for p in points if p.get("content")).strip()
+                if len(combined) >= 30:
+                    logger.info("⚡ [Qdrant Cache HIT] Tìm thấy URL '%s' trong cache Qdrant (%d chunks)", url, len(points))
+                    return combined
+        except Exception as exc:
+            logger.warning("Lỗi tra cứu cache URL '%s' trong Qdrant: %s", url, exc)
+        return None
+
+    def store_url_content_sync(self, url: str, content: str, embedder: Any) -> bool:
+        """
+        Chia nhỏ văn bản từ URL thành các câu, sinh vector và lưu vào Qdrant cache.
+        """
+        if not url or not content:
+            return False
+        from src.utils.text_cleaner import TextCleaner
+        sentences = TextCleaner.clean_and_split(content, min_length=15)
+        if not sentences:
+            return False
+        # Giới hạn tối đa 100 câu tiêu biểu của bài viết để tối ưu bộ nhớ
+        sentences = sentences[:100]
+        try:
+            vectors = embedder.embed_texts(sentences)
+            points = [
+                PointStruct(
+                    id=self._point_id(url, sentence),
+                    vector=vec,
+                    payload={
+                        "content": sentence,
+                        "source_url": url,
+                        "source_type": "internet_web",
+                    },
+                )
+                for sentence, vec in zip(sentences, vectors)
+            ]
+            ok = qdrant_service.upsert_chunks(points, collection_name=self.collection_name)
+            if ok:
+                logger.info("⚡ [Qdrant Cache STORE] Đã lưu %d câu của URL '%s' vào Qdrant cache '%s'", len(points), url, self.collection_name)
+            return ok
+        except Exception as exc:
+            logger.warning("Lỗi lưu cache nội dung URL '%s' vào Qdrant: %s", url, exc)
+            return False
+
 
 internet_qdrant_cache = InternetQdrantCache()

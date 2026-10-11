@@ -14,25 +14,29 @@ export function PlagiarismChecker() {
   const [auditSource, setAuditSource] = useState(null);
   const [apiError, setApiError] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [progressPercentage, setProgressPercentage] = useState(0);
   const { user } = useAuth();
 
   const handleCheck = async (payload) => {
     setIsLoading(true);
     setApiError(null);
     setAuditSource(null);
-    setStatusMessage('Đang kết nối API Backend và gửi văn bản...');
+    setProgressPercentage(10);
+    setStatusMessage('Đang kết nối API Backend và khởi tạo tác vụ...');
 
     try {
       let res;
       let checkTitle = 'Văn bản kiểm tra';
       if (payload.type === 'file') {
         setStatusMessage('Đang tải file lên và trích xuất nội dung văn bản...');
+        setProgressPercentage(30);
         res = await plagiarismApi.checkDocument(payload.file);
         checkTitle = payload.file.name;
         setOriginalText(`[Tệp đính kèm: ${payload.file.name} - ${(payload.file.size / 1024).toFixed(1)} KB]`);
+        setProgressPercentage(100);
       } else {
-        setStatusMessage('Đang thực thi pipeline 6 bước (Tách câu, Embeddings, Quét Qdrant & Serper)...');
-        res = await plagiarismApi.checkText({
+        setStatusMessage('Đang khởi tạo tác vụ kiểm tra ngầm (Background Task)...');
+        const initRes = await plagiarismApi.checkTextAsync({
           text: payload.text,
           title: payload.title,
           enable_web_search: payload.enable_web_search,
@@ -40,6 +44,32 @@ export function PlagiarismChecker() {
         });
         checkTitle = payload.title || payload.text.slice(0, 50) + '...';
         setOriginalText(payload.text);
+
+        const docId = initRes.document_id;
+        let pollRes = initRes;
+        let attempts = 0;
+        const maxAttempts = 120; // 120 * 1.5s = 3 minutes timeout safety
+
+        while (pollRes.status === 'processing' && attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          attempts += 1;
+          pollRes = await plagiarismApi.getStatus(docId);
+          if (pollRes) {
+            if (pollRes.current_step) {
+              setStatusMessage(pollRes.current_step);
+            }
+            if (typeof pollRes.progress_percentage === 'number') {
+              setProgressPercentage(pollRes.progress_percentage);
+            }
+          }
+        }
+
+        if (pollRes.status === 'failed') {
+          throw new Error(pollRes.current_step || 'Quá trình đối soát ngầm gặp lỗi.');
+        }
+
+        res = pollRes;
+        setProgressPercentage(100);
       }
 
       setReport(res);
@@ -75,6 +105,7 @@ export function PlagiarismChecker() {
     setReport(null);
     setAuditSource(null);
     setApiError(null);
+    setProgressPercentage(0);
   };
 
   return (
@@ -110,13 +141,28 @@ export function PlagiarismChecker() {
         </div>
       )}
 
-      {/* Loading Banner with step info */}
+      {/* Loading Banner with step info and animated progress bar */}
       {isLoading && (
-        <div className="p-4 rounded-2xl bg-indigo-50/90 border border-indigo-200 text-indigo-900 flex items-center gap-3 shadow-md shadow-indigo-500/5">
-          <RefreshCw className="w-5 h-5 text-indigo-600 animate-spin shrink-0" />
-          <span className="text-sm font-semibold">
-            {statusMessage || 'Đang thực thi quy trình kiểm tra đạo văn...'}
-          </span>
+        <div className="p-5 rounded-2xl bg-white/95 border border-indigo-100 shadow-xl shadow-indigo-500/10 backdrop-blur flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="w-5 h-5 text-indigo-600 animate-spin shrink-0" />
+              <span className="text-sm font-bold text-slate-800">
+                {statusMessage || 'Đang thực thi quy trình kiểm tra đạo văn...'}
+              </span>
+            </div>
+            {progressPercentage > 0 && (
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-100">
+                {progressPercentage}%
+              </span>
+            )}
+          </div>
+          <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 h-full rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${Math.max(8, progressPercentage)}%` }}
+            />
+          </div>
         </div>
       )}
 

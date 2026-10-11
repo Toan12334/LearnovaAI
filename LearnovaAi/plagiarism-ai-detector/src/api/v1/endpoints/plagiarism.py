@@ -133,13 +133,24 @@ async def check_plagiarism_async(
 
         # Gửi tác vụ chạy ngầm
         def _execute_bg_pipeline():
-            plagiarism_pipeline.run(
-                content=content,
-                title=payload.title,
-                user_id=effective_user_id,
-                enable_web_search=payload.enable_web_search,
-                similarity_threshold=payload.similarity_threshold,
-            )
+            try:
+                plagiarism_pipeline.run(
+                    content=content,
+                    title=payload.title,
+                    user_id=effective_user_id,
+                    enable_web_search=payload.enable_web_search,
+                    similarity_threshold=payload.similarity_threshold,
+                    document_id=document_id,
+                )
+            except Exception as bg_err:
+                from src.core.logging import logger
+                logger.error(f"Lỗi khi thực thi background task cho doc {document_id}: {bg_err}", exc_info=True)
+                plagiarism_pipeline.update_job_progress(
+                    document_id,
+                    0,
+                    f"Thất bại: {str(bg_err)}",
+                    status="failed",
+                )
 
         background_tasks.add_task(_execute_bg_pipeline)
 

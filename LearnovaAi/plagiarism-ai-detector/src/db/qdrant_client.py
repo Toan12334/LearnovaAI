@@ -230,5 +230,39 @@ class QdrantService:
             )
         return matches
 
+    def get_points_by_url(
+        self,
+        source_url: str,
+        collection_name: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """Lấy tất cả các chunks đã lưu của một URL từ Qdrant."""
+        if not source_url:
+            return []
+        c_name = collection_name or getattr(settings, "INTERNET_CACHE_COLLECTION", "internet_web_cache_384")
+        self.ensure_collection(c_name)
+        try:
+            url_filter = Filter(must=[FieldCondition(key="source_url", match=MatchValue(value=str(source_url)))])
+            scroll_res = self.client.scroll(
+                collection_name=c_name,
+                scroll_filter=url_filter,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False,
+            )
+            points = scroll_res[0] if isinstance(scroll_res, tuple) else getattr(scroll_res, "points", [])
+            results = []
+            for p in points:
+                payload = p.payload or {}
+                results.append({
+                    "point_id": p.id,
+                    "content": payload.get("content", ""),
+                    "source_url": payload.get("source_url", source_url),
+                })
+            return results
+        except Exception as e:
+            logger.warning(f"Lỗi khi tra cứu URL '{source_url}' trong Qdrant '{c_name}': {e}")
+            return []
+
 
 qdrant_service = QdrantService()
