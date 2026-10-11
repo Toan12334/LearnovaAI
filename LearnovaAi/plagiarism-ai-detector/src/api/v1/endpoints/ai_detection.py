@@ -2,12 +2,13 @@ from functools import lru_cache
 from collections import defaultdict, deque
 from threading import Lock
 from time import monotonic, perf_counter
-from typing import Deque, DefaultDict
+from typing import Deque, DefaultDict, Dict, Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from src.models.request import AIDetectionRequest
 from src.models.response import AIDetectionResponse, SentenceDetail
 from src.services.ai_detector import AIDetectorService
+from src.core.security import get_current_user
 
 router = APIRouter()
 _RATE_LIMIT = 10
@@ -53,8 +54,12 @@ def enforce_rate_limit(client_key: str) -> None:
 
 
 @router.post("/detect", response_model=AIDetectionResponse, summary="[GD2] Endpoint phát hiện AI")
-async def detect_ai_generated_content(payload: AIDetectionRequest, request: Request):
-    """Run the Perplexity + Burstiness detector and return heatmap details."""
+async def detect_ai_generated_content(
+    payload: AIDetectionRequest,
+    request: Request,
+    current_user: Dict[str, Any] = Depends(get_current_user),
+):
+    """Run the Perplexity + Burstiness detector and return heatmap details. Yêu cầu đăng nhập."""
     enforce_rate_limit(request.client.host if request.client else "unknown")
     started_at = perf_counter()
     try:

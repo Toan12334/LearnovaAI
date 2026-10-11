@@ -42,6 +42,9 @@ class UserProfileResponse(BaseModel):
     email: str
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    role: Optional[str] = "user"
+    words_balance: Optional[int] = 10000
+    organization_id: Optional[str] = None
     created_at: Optional[str] = None
 
 

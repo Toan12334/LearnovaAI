@@ -5,9 +5,9 @@ import { TimestampAudit } from './components/TimestampAudit';
 import { plagiarismApi } from '../../services/plagiarismApi';
 import { historyService } from '../../services/historyService';
 import { useAuth } from '../auth';
-import { AlertCircle, RefreshCw, X } from 'lucide-react';
+import { AlertCircle, RefreshCw, X, Lock } from 'lucide-react';
 
-export function PlagiarismChecker() {
+export function PlagiarismChecker({ onOpenAuth }) {
   const [isLoading, setIsLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [originalText, setOriginalText] = useState('');
@@ -15,9 +15,22 @@ export function PlagiarismChecker() {
   const [apiError, setApiError] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [progressPercentage, setProgressPercentage] = useState(0);
-  const { user } = useAuth();
+  const { user, isAuthenticated, updateWordsBalance } = useAuth();
+
+  const handleRequireAuth = () => {
+    if (onOpenAuth) {
+      onOpenAuth('signin');
+    } else {
+      window.dispatchEvent(new CustomEvent('learnova:auth-required'));
+    }
+  };
 
   const handleCheck = async (payload) => {
+    if (!isAuthenticated || !user) {
+      handleRequireAuth();
+      return;
+    }
+
     setIsLoading(true);
     setApiError(null);
     setAuditSource(null);
@@ -91,6 +104,12 @@ export function PlagiarismChecker() {
         user?.id
       );
 
+      // Cập nhật số dư từ tức thì trên giao diện
+      if (updateWordsBalance && user?.words_balance) {
+        const usedWords = res.word_count || (payload.text ? payload.text.trim().split(/\s+/).length : 0);
+        updateWordsBalance(Math.max(0, user.words_balance - usedWords));
+      }
+
     } catch (err) {
       console.error('[PlagiarismChecker Error]:', err);
       setApiError(
@@ -110,6 +129,44 @@ export function PlagiarismChecker() {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto">
+      {/* Auth Gate Banner for unauthenticated visitors */}
+      {!isAuthenticated && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-amber-300 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white flex items-center gap-2">
+                Yêu cầu đăng nhập để khởi chạy kiểm tra
+                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-md border border-amber-400/30">
+                  Tặng 10.000 từ
+                </span>
+              </div>
+              <p className="text-xs text-indigo-200/80 mt-0.5">
+                Đăng nhập để đối soát toàn văn, lưu lịch sử và tra cứu nguồn gốc tri thức tự động.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleRequireAuth}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-900 hover:bg-slate-100 transition-all cursor-pointer shadow-sm text-center"
+            >
+              Đăng nhập
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenAuth ? onOpenAuth('signup') : handleRequireAuth()}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:brightness-110 transition-all cursor-pointer shadow-sm text-center"
+            >
+              Đăng ký miễn phí
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Error Banner */}
       {apiError && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start justify-between gap-4 shadow-sm">
@@ -168,7 +225,12 @@ export function PlagiarismChecker() {
 
       {/* Main Content: Document Input or Analysis Report */}
       {!report ? (
-        <DocumentInput onCheck={handleCheck} isLoading={isLoading} />
+        <DocumentInput
+          onCheck={handleCheck}
+          isLoading={isLoading}
+          isAuthenticated={isAuthenticated}
+          onRequireAuth={handleRequireAuth}
+        />
       ) : (
         <PlagiarismReportView
           report={report}

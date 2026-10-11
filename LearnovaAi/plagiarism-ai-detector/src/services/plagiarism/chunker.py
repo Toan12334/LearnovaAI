@@ -90,16 +90,18 @@ class InternetPlagiarismChunker:
 
         candidates: List[Dict[str, Any]] = []
         index = 0
+        carry_overlap: Optional[str] = None  # câu overlap mang sang chunk kế tiếp
+
         while index < len(accepted):
             selected_sentences: List[str] = []
             word_count = 0
 
             # 1-sentence overlap from previous chunk
-            if candidates:
-                overlap_sentence = candidates[-1]["sentences"][-1]
-                selected_sentences.append(overlap_sentence)
-                word_count = len(self._WORD.findall(overlap_sentence))
+            if carry_overlap is not None:
+                selected_sentences.append(carry_overlap)
+                word_count = len(self._WORD.findall(carry_overlap))
 
+            consumed_new = False
             while index < len(accepted):
                 sentence = accepted[index]
                 sentence_words = len(self._WORD.findall(sentence))
@@ -108,8 +110,17 @@ class InternetPlagiarismChunker:
                 selected_sentences.append(sentence)
                 word_count += sentence_words
                 index += 1
+                consumed_new = True
                 if word_count >= 60:
                     break
+
+            if not consumed_new:
+                # Câu hiện tại không vừa chunk (kể cả khi bỏ overlap) → tách thành chunk riêng.
+                # Đảm bảo index LUÔN tiến → không bao giờ lặp vô hạn (bug cũ với câu >100 từ).
+                sentence = accepted[index]
+                selected_sentences = [sentence]
+                word_count = len(self._WORD.findall(sentence))
+                index += 1
 
             if word_count >= 15:
                 chunk_text = " ".join(selected_sentences)
@@ -120,8 +131,8 @@ class InternetPlagiarismChunker:
                     "word_count": word_count,
                     "complexity": self._calculate_complexity(chunk_text),
                 })
-            elif index < len(accepted):
-                index += 1
+                # Chỉ mang overlap khi chunk đủ nhỏ để còn ghép được với câu sau
+                carry_overlap = selected_sentences[-1] if word_count <= 100 else None
 
         if not candidates:
             return []

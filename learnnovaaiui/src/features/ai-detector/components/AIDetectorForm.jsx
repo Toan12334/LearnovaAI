@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Button } from '../../../components/Button';
 import { FileUploadZone } from '../../../components/FileUploadZone';
-import { Sparkles, FileText, Trash2, ArrowRight, FileUp, Edit3 } from 'lucide-react';
+import { Sparkles, FileText, Trash2, ArrowRight, FileUp, Edit3, Lock } from 'lucide-react';
 
-export function AIDetectorForm({ onAnalyze, isLoading = false }) {
+export function AIDetectorForm({ onAnalyze, isLoading = false, isAuthenticated = true, onRequireAuth }) {
   const [inputMode, setInputMode] = useState('text'); // 'text' | 'upload'
   const [text, setText] = useState('');
   const [sourceFile, setSourceFile] = useState(null);
@@ -13,6 +13,10 @@ export function AIDetectorForm({ onAnalyze, isLoading = false }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
     if (text.trim().length < 50) return;
     onAnalyze({ text, language: 'auto', sourceFile });
   };
@@ -148,13 +152,13 @@ export function AIDetectorForm({ onAnalyze, isLoading = false }) {
 
         <Button
           type="submit"
-          variant="primary"
+          variant={!isAuthenticated ? "secondary" : "primary"}
           size="lg"
           isLoading={isLoading}
-          disabled={text.trim().length < 50}
-          icon={<ArrowRight className="w-4 h-4" />}
+          disabled={isAuthenticated && text.trim().length < 50}
+          icon={!isAuthenticated ? <Lock className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
         >
-          Nhận diện AI Generated
+          {!isAuthenticated ? 'Đăng nhập để Phân tích' : 'Nhận diện AI Generated'}
         </Button>
       </div>
     </form>

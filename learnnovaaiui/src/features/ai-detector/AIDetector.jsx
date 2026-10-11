@@ -5,15 +5,28 @@ import { AIDetectorResult } from './components/AIDetectorResult';
 import { aiDetectorApi } from '../../services/aiDetectorApi';
 import { historyService } from '../../services/historyService';
 import { useAuth } from '../auth';
-import { Cpu, AlertCircle, Sparkles } from 'lucide-react';
+import { Cpu, AlertCircle, Sparkles, Lock } from 'lucide-react';
 
-export function AIDetector() {
+export function AIDetector({ onOpenAuth }) {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+
+  const handleRequireAuth = () => {
+    if (onOpenAuth) {
+      onOpenAuth('signin');
+    } else {
+      window.dispatchEvent(new CustomEvent('learnova:auth-required'));
+    }
+  };
 
   const handleAnalyze = async (payload) => {
+    if (!isAuthenticated || !user) {
+      handleRequireAuth();
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setResult(null);
@@ -49,7 +62,45 @@ export function AIDetector() {
   };
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+      {/* Auth Gate Banner for unauthenticated visitors */}
+      {!isAuthenticated && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border border-purple-500/30 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-purple-300 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white flex items-center gap-2">
+                Yêu cầu đăng nhập để phân tích PhoBERT AI
+                <span className="text-[10px] font-black uppercase tracking-wider bg-purple-400/20 text-purple-300 px-2 py-0.5 rounded-md border border-purple-400/30">
+                  Model v2.0
+                </span>
+              </div>
+              <p className="text-xs text-purple-200/80 mt-0.5">
+                Đăng nhập để khởi chạy mô hình Deep Learning phân tích Perplexity & Heatmap câu tiếng Việt.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleRequireAuth}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-900 hover:bg-slate-100 transition-all cursor-pointer shadow-sm text-center"
+            >
+              Đăng nhập
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenAuth ? onOpenAuth('signup') : handleRequireAuth()}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:brightness-110 transition-all cursor-pointer shadow-sm text-center"
+            >
+              Đăng ký miễn phí
+            </button>
+          </div>
+        </div>
+      )}
+
       <Card
         title="🤖 Nhận diện AI Generated (PhoBERT AI Detector)"
         subtitle="Sử dụng mô hình Transformer tiếng Việt PhoBERT fine-tuned (toanoppa10012004/phobert-vietnamese-ai-detector) để phân tích tác giả văn bản"
@@ -60,7 +111,12 @@ export function AIDetector() {
           </span>
         }
       >
-        <AIDetectorForm onAnalyze={handleAnalyze} isLoading={isLoading} />
+        <AIDetectorForm
+          onAnalyze={handleAnalyze}
+          isLoading={isLoading}
+          isAuthenticated={isAuthenticated}
+          onRequireAuth={handleRequireAuth}
+        />
         {error && (
           <div role="alert" className="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />

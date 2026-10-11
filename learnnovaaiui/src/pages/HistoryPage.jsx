@@ -4,13 +4,13 @@ import { Button } from '../components/Button';
 import { formatDate } from '../utils/formatDate';
 import { historyService } from '../services/historyService';
 import { useAuth } from '../features/auth';
-import { Search, Bot, Trash2, Calendar, FileText, ArrowRight, Layers, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Search, Bot, Trash2, Calendar, FileText, ArrowRight, Layers, ShieldAlert, ShieldCheck, Lock } from 'lucide-react';
 
-export function HistoryPage({ onSelectReport }) {
+export function HistoryPage({ onSelectReport, onOpenAuth }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'plagiarism' | 'ai_detection'
   const [historyItems, setHistoryItems] = useState([]);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
     loadHistory();
@@ -64,6 +64,45 @@ export function HistoryPage({ onSelectReport }) {
       return { label: 'Độc bản an toàn', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     }
   };
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full py-8">
+        <Card
+          title="🔒 Yêu cầu Đăng nhập Tài khoản"
+          subtitle="Vui lòng đăng nhập để xem lại lịch sử tra cứu của bạn"
+        >
+          <div className="py-12 px-4 text-center flex flex-col items-center justify-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-600 mb-4 shadow-sm">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">
+              Lịch sử Tra cứu Được Bảo Mật
+            </h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              Bạn cần đăng nhập tài khoản để đồng bộ và quản lý toàn bộ các lượt đối soát đạo văn và phân tích PhoBERT AI.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenAuth ? onOpenAuth('signin') : window.dispatchEvent(new CustomEvent('learnova:auth-required'))}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md cursor-pointer"
+              >
+                Đăng nhập ngay
+              </button>
+              <button
+                type="button"
+                onClick={() => onOpenAuth ? onOpenAuth('signup') : window.dispatchEvent(new CustomEvent('learnova:auth-required'))}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all cursor-pointer"
+              >
+                Đăng ký tài khoản
+              </button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto w-full">

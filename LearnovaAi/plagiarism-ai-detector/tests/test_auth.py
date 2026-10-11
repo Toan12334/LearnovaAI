@@ -371,7 +371,32 @@ def test_plagiarism_check_with_auth_token(mock_get_supabase, mock_pipeline_run):
     assert call_kwargs["user_id"] == user_id
 
 
+def test_plagiarism_check_without_auth_returns_401():
+    """Kiểm tra API POST /api/v1/plagiarism/check từ chối người dùng chưa đăng nhập (401)."""
+    response = client.post(
+        "/api/v1/plagiarism/check",
+        json={
+            "title": "Báo cáo không đăng nhập",
+            "text": "Nội dung bài viết để kiểm tra đạo văn với độ dài trên 15 ký tự hợp lệ.",
+        },
+    )
+    assert response.status_code == 401
+    assert "Authorization" in response.json().get("detail", "") or "Bearer" in response.json().get("detail", "")
+
+
+def test_ai_detection_without_auth_returns_401():
+    """Kiểm tra API POST /api/v1/ai-detection/detect từ chối người dùng chưa đăng nhập (401)."""
+    response = client.post(
+        "/api/v1/ai-detection/detect",
+        json={
+            "text": "Trí tuệ nhân tạo đang làm thay đổi thế giới trong nhiều lĩnh vực.",
+        },
+    )
+    assert response.status_code == 401
+
+
 if __name__ == "__main__":
     import pytest
     sys.exit(pytest.main(["-v", __file__]))
+
 

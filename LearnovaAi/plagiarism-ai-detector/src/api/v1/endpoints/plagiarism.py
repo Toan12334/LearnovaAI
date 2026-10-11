@@ -1,6 +1,6 @@
 import asyncio
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, BackgroundTasks, status
 from src.models.request import InternetPlagiarismRequest, PlagiarismCheckRequest
 from src.models.response import (
     InternetPlagiarismResponse,
@@ -11,7 +11,7 @@ from src.models.response import (
 from src.services.plagiarism.pipeline import plagiarism_pipeline
 from src.services.plagiarism.internet_pipeline import internet_plagiarism_service
 from src.services.parsers.doc_parser import DocumentParser
-from src.core.security import get_optional_current_user
+from src.core.security import get_current_user, get_optional_current_user
 
 router = APIRouter()
 
@@ -30,20 +30,27 @@ async def check_internet_plagiarism(payload: InternetPlagiarismRequest):
 @router.post("/check", response_model=PlagiarismCheckResponse, summary="[GD1] Kiểm tra đạo văn văn bản theo pipeline chuẩn học thuật")
 async def check_plagiarism(
     payload: PlagiarismCheckRequest,
-    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
     Quy trình đối soát đạo văn chuẩn học thuật 6 bước tích hợp:
-    1. Lưu bài gốc vào Supabase documents (pending).
-    2. Tách câu thông minh (TextCleaner).
-    3. Lưu các câu vào Supabase document_chunks.
-    4. Tạo Vector (EmbeddingService MiniLM 384 dims).
-    5. Lưu Vector vào Qdrant.
-    6. Đối soát Qdrant & Serper, Winnowing, phân loại EXACT / PARAPHRASED, cập nhật documents.
+    Yêu cầu người dùng đăng nhập tài khoản hợp lệ.
     """
     try:
         content = payload.get_content()
-        effective_user_id = payload.user_id or (current_user["id"] if current_user else None)
+        effective_user_id = current_user["id"]
+
+        cleaner = plagiarism_pipeline.cleaner
+        word_count = cleaner.count_words(content)
+
+        # Kiểm tra hạn mức từ khả dụng
+        words_balance = current_user.get("words_balance", 10000)
+        if words_balance is not None and words_balance < word_count:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=f"Số dư tài khoản không đủ ({words_balance:,} từ khả dụng, tài liệu cần {word_count:,} từ). Vui lòng nạp thêm gói cước.",
+            )
+
         result = await asyncio.to_thread(
             plagiarism_pipeline.run,
             content=content,
@@ -52,6 +59,15 @@ async def check_plagiarism(
             enable_web_search=payload.enable_web_search,
             similarity_threshold=payload.similarity_threshold,
         )
+
+        # Trừ số từ vào tài khoản sau khi hoàn tất
+        if words_balance is not None and effective_user_id:
+            try:
+                from src.db.supabase_client import get_supabase_client
+                new_bal = max(0, words_balance - word_count)
+                get_supabase_client().table("profiles").update({"words_balance": new_bal}).eq("id", effective_user_id).execute()
+            except Exception:
+                pass
 
         matches_models = [
             MatchDetail(
@@ -92,21 +108,30 @@ async def check_plagiarism(
 async def check_plagiarism_async(
     payload: PlagiarismCheckRequest,
     background_tasks: BackgroundTasks,
-    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """
     Khởi tạo tác vụ ngầm kiểm tra đạo văn cho các văn bản dài.
-    Trả về ngay document_id và tiến trình ban đầu để client polling.
+    Yêu cầu người dùng đăng nhập tài khoản hợp lệ.
     """
     try:
         content = payload.get_content()
-        effective_user_id = payload.user_id or (current_user["id"] if current_user else None)
+        effective_user_id = current_user["id"]
+
+        cleaner = plagiarism_pipeline.cleaner
+        word_count = cleaner.count_words(content)
+
+        # Kiểm tra hạn mức từ khả dụng
+        words_balance = current_user.get("words_balance", 10000)
+        if words_balance is not None and words_balance < word_count:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail=f"Số dư tài khoản không đủ ({words_balance:,} từ khả dụng, bài viết có {word_count:,} từ). Vui lòng nạp thêm gói cước.",
+            )
 
         # Lưu tài liệu sơ bộ vào Supabase
         from src.db.supabase_client import get_supabase_client
         supabase = get_supabase_client()
-        cleaner = plagiarism_pipeline.cleaner
-        word_count = cleaner.count_words(content)
 
         doc_payload = {
             "title": payload.title or "Văn bản kiểm tra ngầm",
@@ -115,15 +140,22 @@ async def check_plagiarism_async(
             "plagiarism_score": 0.0,
             "ai_score": 0.0,
             "status": "processing",
+            "user_id": str(effective_user_id),
         }
-        if effective_user_id:
-            doc_payload["user_id"] = str(effective_user_id)
 
         try:
             doc_res = supabase.table("documents").insert(doc_payload).execute()
         except Exception:
             doc_payload.pop("user_id", None)
             doc_res = supabase.table("documents").insert(doc_payload).execute()
+
+        # Trừ số từ vào tài khoản
+        if words_balance is not None and effective_user_id:
+            try:
+                new_bal = max(0, words_balance - word_count)
+                supabase.table("profiles").update({"words_balance": new_bal}).eq("id", effective_user_id).execute()
+            except Exception:
+                pass
 
         document_id = doc_res.data[0]["id"]
         plagiarism_pipeline.update_job_progress(
@@ -315,13 +347,10 @@ async def get_document_report(document_id: str):
 
 @router.get("/history", summary="[GD1] Lấy lịch sử tra cứu của user hiện tại")
 async def get_user_history(
-    current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ):
     """Lấy danh sách lịch sử kiểm tra của user hiện tại từ DB Supabase."""
-    if not current_user:
-        return {"documents": []}
-
-    user_id = current_user.get("id")
+    user_id = current_user["id"]
     try:
         from src.db.supabase_client import get_supabase_client
         supabase = get_supabase_client()
@@ -329,6 +358,6 @@ async def get_user_history(
             res = supabase.table("documents").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
             return {"documents": res.data or []}
         return {"documents": []}
-    except Exception:
-        return {"documents": []}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Lỗi truy vấn lịch sử: {str(exc)}")
 

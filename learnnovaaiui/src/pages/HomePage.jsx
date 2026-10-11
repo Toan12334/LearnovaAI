@@ -21,7 +21,7 @@ import {
   FileCheck
 } from 'lucide-react';
 
-export function HomePage() {
+export function HomePage({ onOpenAuth }) {
   const [activeTab, setActiveTab] = useState('plagiarism'); // 'plagiarism' | 'ai-detector'
   const [openFaq, setOpenFaq] = useState(null);
 
@@ -111,7 +111,11 @@ export function HomePage() {
       {/* 2. MAIN WORKSPACE STUDIO CONTAINER */}
       <section className="w-full relative">
         <div className="p-2 sm:p-4 rounded-3xl bg-white/70 backdrop-blur-2xl border border-slate-200/80 shadow-2xl shadow-indigo-950/5">
-          {activeTab === 'plagiarism' ? <PlagiarismChecker /> : <AIDetector />}
+          {activeTab === 'plagiarism' ? (
+            <PlagiarismChecker onOpenAuth={onOpenAuth} />
+          ) : (
+            <AIDetector onOpenAuth={onOpenAuth} />
+          )}
         </div>
       </section>
 

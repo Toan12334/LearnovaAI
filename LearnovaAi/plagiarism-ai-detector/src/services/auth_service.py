@@ -189,12 +189,15 @@ class AuthService:
         # Lấy thông tin profile từ bảng 'profiles'
         full_name = None
         avatar_url = None
+        role = "user"
+        words_balance = 10000
+        organization_id = None
         created_at = str(user.created_at) if hasattr(user, "created_at") else None
 
         try:
             profile_res = (
                 self.supabase.table("profiles")
-                .select("full_name, avatar_url, created_at")
+                .select("full_name, avatar_url, role, words_balance, organization_id, created_at")
                 .eq("id", user_id)
                 .limit(1)
                 .execute()
@@ -203,6 +206,9 @@ class AuthService:
                 prof = profile_res.data[0]
                 full_name = prof.get("full_name")
                 avatar_url = prof.get("avatar_url")
+                role = prof.get("role") or "user"
+                words_balance = prof.get("words_balance") if prof.get("words_balance") is not None else 10000
+                organization_id = prof.get("organization_id")
                 if prof.get("created_at"):
                     created_at = str(prof["created_at"])
         except Exception as pe:
@@ -217,6 +223,9 @@ class AuthService:
             email=email,
             full_name=full_name,
             avatar_url=avatar_url,
+            role=role,
+            words_balance=words_balance,
+            organization_id=organization_id,
             created_at=created_at,
         )
 

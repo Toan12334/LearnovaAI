@@ -44,6 +44,18 @@ axiosInstance.interceptors.response.use(
     // 2. Phản hồi có HTTP Status (4xx, 5xx) từ Backend
     else if (error.response) {
       const data = error.response.data;
+      if (error.response.status === 401) {
+        localStorage.removeItem('learnova_token');
+        localStorage.removeItem('learnova_user');
+        localStorage.removeItem('learnova_refresh_token');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('learnova:auth-required', {
+              detail: { message: 'Vui lòng đăng nhập để sử dụng tính năng này.' }
+            })
+          );
+        }
+      }
       if (typeof data === 'string') {
         message = data;
       } else if (data?.detail) {

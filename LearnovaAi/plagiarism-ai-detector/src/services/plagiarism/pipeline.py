@@ -89,6 +89,8 @@ class PlagiarismPipeline:
                     "current_step": "Hoàn tất" if status == "completed" else "Đang xử lý",
                     "word_count": d.get("word_count", 0),
                     "plagiarism_score": d.get("plagiarism_score", 0.0),
+                    "exact_match_score": d.get("exact_match_score"),
+                    "paraphrase_score": d.get("paraphrase_score"),
                     "coverage_percentage": d.get("coverage_percentage"),
                     "coverage_text": d.get("coverage_text"),
                     "warning": d.get("warning"),
@@ -583,6 +585,7 @@ class PlagiarismPipeline:
                     "matched_url": m.get("matched_url"),
                     "matched_text": m.get("matched_text", ""),
                     "similarity_score": float(m.get("similarity_score", 0.0)),
+                    "match_type": m.get("match_type", "EXACT"),
                 }
                 for m in all_matches
             ]
@@ -651,6 +654,8 @@ class PlagiarismPipeline:
                 "coverage_percentage": coverage_percentage,
                 "coverage_text": coverage_text,
                 "warning": web_warning,
+                "exact_match_score": exact_percentage,
+                "paraphrase_score": paraphrased_percentage,
             }).eq("id", document_id).execute()
         except Exception as persist_err:
             logger.warning(

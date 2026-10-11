@@ -3,15 +3,36 @@ import { Navbar } from './components/Navbar';
 import { HomePage, HistoryPage, ReportPage } from './pages';
 import { AuthProvider, AuthModal } from './features/auth';
 
+import { useAuth } from './features/auth';
+
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedReportId, setSelectedReportId] = useState('REP-2026-001');
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
+  const { isAuthenticated } = useAuth();
+
+  // Tự động lắng nghe sự kiện khi một tác vụ cần đăng nhập
+  React.useEffect(() => {
+    const handleAuthRequired = () => {
+      setAuthMode('signin');
+      setIsAuthOpen(true);
+    };
+    window.addEventListener('learnova:auth-required', handleAuthRequired);
+    return () => window.removeEventListener('learnova:auth-required', handleAuthRequired);
+  }, []);
 
   const handleOpenAuth = (mode = 'signin') => {
     setAuthMode(mode);
     setIsAuthOpen(true);
+  };
+
+  const handleNavigate = (page) => {
+    if ((page === 'history' || page === 'report') && !isAuthenticated) {
+      handleOpenAuth('signin');
+      return;
+    }
+    setCurrentPage(page);
   };
 
   const handleSelectReport = (reportId) => {
@@ -24,14 +45,14 @@ function AppContent() {
       {/* Top Navigation */}
       <Navbar
         currentPage={currentPage}
-        onNavigate={(page) => setCurrentPage(page)}
+        onNavigate={handleNavigate}
         onOpenAuth={handleOpenAuth}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentPage === 'home' && <HomePage />}
-        {currentPage === 'history' && <HistoryPage onSelectReport={handleSelectReport} />}
+        {currentPage === 'home' && <HomePage onOpenAuth={handleOpenAuth} />}
+        {currentPage === 'history' && <HistoryPage onSelectReport={handleSelectReport} onOpenAuth={handleOpenAuth} />}
         {currentPage === 'report' && (
           <ReportPage reportId={selectedReportId} onBack={() => setCurrentPage('history')} />
         )}

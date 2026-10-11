@@ -79,6 +79,15 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
+  const updateWordsBalance = (newBalance) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, words_balance: newBalance };
+      localStorage.setItem('learnova_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const value = {
     user,
     token,
@@ -88,6 +97,7 @@ export function AuthProvider({ children }) {
     signUp,
     signOut,
     setUser,
+    updateWordsBalance,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

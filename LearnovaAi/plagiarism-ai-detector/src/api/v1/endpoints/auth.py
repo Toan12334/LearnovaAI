@@ -86,6 +86,9 @@ def get_my_profile(current_user: Dict[str, Any] = Depends(get_current_user)):
         email=current_user["email"],
         full_name=current_user.get("full_name"),
         avatar_url=current_user.get("avatar_url"),
+        role=current_user.get("role") or "user",
+        words_balance=current_user.get("words_balance", 10000),
+        organization_id=current_user.get("organization_id"),
         created_at=current_user.get("created_at"),
     )
 

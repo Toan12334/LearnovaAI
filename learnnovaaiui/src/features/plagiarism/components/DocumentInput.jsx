@@ -11,7 +11,9 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-export function DocumentInput({ onCheck, isLoading = false }) {
+import { Lock } from 'lucide-react';
+
+export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = true, onRequireAuth }) {
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -63,6 +65,11 @@ export function DocumentInput({ onCheck, isLoading = false }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     setValidationError('');
+
+    if (!isAuthenticated) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
 
     if (selectedFile) {
       onCheck({
@@ -416,7 +423,13 @@ export function DocumentInput({ onCheck, isLoading = false }) {
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  if (onRequireAuth) onRequireAuth();
+                  return;
+                }
+                fileInputRef.current?.click();
+              }}
               disabled={isLoading}
               style={{
                 display: 'inline-flex',
@@ -447,11 +460,15 @@ export function DocumentInput({ onCheck, isLoading = false }) {
                 padding: '0.65rem 1.6rem',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #4F7CFF 0%, #8B5CF6 100%)',
+                background: !isAuthenticated
+                  ? 'linear-gradient(135deg, #475569 0%, #334155 100%)'
+                  : 'linear-gradient(135deg, #4F7CFF 0%, #8B5CF6 100%)',
                 color: '#ffffff',
                 fontSize: '0.92rem',
                 fontWeight: 600,
-                boxShadow: '0 4px 20px rgba(79, 124, 255, 0.4)',
+                boxShadow: !isAuthenticated
+                  ? '0 4px 15px rgba(51, 65, 85, 0.3)'
+                  : '0 4px 20px rgba(79, 124, 255, 0.4)',
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 opacity: isLoading ? 0.7 : 1,
                 transform: isLoading ? 'none' : 'translateY(0)',
@@ -471,6 +488,11 @@ export function DocumentInput({ onCheck, isLoading = false }) {
                     }}
                   />
                   <span>Đang phân tích...</span>
+                </>
+              ) : !isAuthenticated ? (
+                <>
+                  <Lock size={16} />
+                  <span>Đăng nhập để Kiểm tra</span>
                 </>
               ) : (
                 <>

@@ -68,13 +68,29 @@ export function Navbar({ currentPage, onNavigate, onOpenAuth }) {
           {/* Auth Section */}
           {isAuthenticated && user ? (
             <div className="flex items-center gap-2">
+              {/* Words Balance Badge */}
+              <div
+                title="Hạn mức từ khả dụng để kiểm tra đạo văn"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 text-indigo-800 text-xs font-bold shadow-xs"
+              >
+                <span className="text-amber-500 font-black text-sm">⚡</span>
+                <span>{(user.words_balance ?? 10000).toLocaleString('vi-VN')}</span>
+                <span className="text-[10px] font-semibold text-indigo-500 uppercase">từ</span>
+              </div>
+
+              {/* User Profile Pill */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-xs">
                   {(user.full_name || user.email || 'U')[0].toUpperCase()}
                 </div>
                 <span className="max-w-[120px] truncate font-semibold">
                   {user.full_name || user.email}
                 </span>
+                {user.role && user.role !== 'user' && (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-purple-200 text-purple-800">
+                    {user.role}
+                  </span>
+                )}
               </div>
 
               <button
