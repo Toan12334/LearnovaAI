@@ -23,6 +23,9 @@ class PlagiarismCheckResponse(BaseModel):
     exact_match_score: Optional[float] = 0.0
     paraphrase_score: Optional[float] = 0.0
     is_plagiarized: bool
+    coverage_percentage: Optional[float] = 100.0
+    coverage_text: Optional[str] = "100% văn bản"
+    warning: Optional[str] = None
     matches: List[MatchDetail] = []
     status: str = "completed"
     message: str = "Kiểm tra hoàn tất."
@@ -41,6 +44,9 @@ class PlagiarismStatusResponse(BaseModel):
     exact_match_score: Optional[float] = None
     paraphrase_score: Optional[float] = None
     is_plagiarized: Optional[bool] = None
+    coverage_percentage: Optional[float] = 100.0
+    coverage_text: Optional[str] = "100% văn bản"
+    warning: Optional[str] = None
     matches: Optional[List[MatchDetail]] = None
     message: Optional[str] = None
 

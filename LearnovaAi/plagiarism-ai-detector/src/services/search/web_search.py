@@ -4,6 +4,16 @@ from src.core.config import settings
 from src.core.logging import logger
 
 
+class SerperQuotaExceededError(Exception):
+    """Ném ra khi Serper.dev trả về HTTP 429 (Hết Quota credits hoặc Rate Limit)."""
+    pass
+
+
+class SerperServerError(Exception):
+    """Ném ra khi máy chủ Serper.dev trả về HTTP 5xx."""
+    pass
+
+
 class WebSearchService:
     """[GD1] Tìm kiếm các nguồn nghi vấn qua Serper.dev API."""
 
@@ -51,6 +61,13 @@ class WebSearchService:
                 response = await client.post(
                     self.api_url, headers=headers, json=payload
                 )
+                if response.status_code == 429:
+                    logger.error(f"CRITICAL: Serper API Rate Limited (HTTP 429) hoặc hết Quota credit: {response.text}")
+                    raise SerperQuotaExceededError("Dịch vụ tìm kiếm Internet đang quá tải hoặc hết hạn mức (HTTP 429).")
+                elif response.status_code >= 500:
+                    logger.error(f"CRITICAL: Serper API máy chủ lỗi (HTTP {response.status_code}): {response.text}")
+                    raise SerperServerError(f"Máy chủ tìm kiếm Internet gặp sự cố (HTTP {response.status_code}).")
+
                 response.raise_for_status()
                 data = response.json()
 
@@ -69,6 +86,8 @@ class WebSearchService:
                 logger.info(f"Serper API: Nhận {len(results)} kết quả cho query.")
                 return results
 
+        except (SerperQuotaExceededError, SerperServerError):
+            raise
         except httpx.HTTPStatusError as e:
             logger.error(f"Lỗi HTTP từ Serper API: {e.response.status_code} - {e.response.text}")
         except httpx.RequestError as e:
@@ -111,6 +130,17 @@ class WebSearchService:
                         }
                     )
                 return results
+            elif response.status_code == 429:
+                logger.error(f"CRITICAL: Serper API Rate Limited (HTTP 429) hoặc hết Quota: {response.text}")
+                raise SerperQuotaExceededError("Dịch vụ tìm kiếm Internet đang quá tải hoặc hết hạn mức (HTTP 429).")
+            elif response.status_code >= 500:
+                logger.error(f"CRITICAL: Serper API lỗi máy chủ (HTTP {response.status_code}): {response.text}")
+                raise SerperServerError(f"Máy chủ tìm kiếm Internet gặp sự cố (HTTP {response.status_code}).")
+            else:
+                logger.error(f"Serper API trả về mã lỗi HTTP {response.status_code}: {response.text[:200]}")
+                return []
+        except (SerperQuotaExceededError, SerperServerError):
+            raise
         except Exception as e:
             logger.error(f"Lỗi truy vấn Serper sync: {e}")
         return []

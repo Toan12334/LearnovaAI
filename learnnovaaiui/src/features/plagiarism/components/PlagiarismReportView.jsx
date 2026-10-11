@@ -12,6 +12,8 @@ import {
   Layers,
   Columns,
   Eye,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { SideBySideDiffModal } from './SideBySideDiffModal';
 
@@ -42,6 +44,9 @@ export function PlagiarismReportView({
     paraphrase_score = 0,
     is_plagiarized = false,
     matches = [],
+    coverage_percentage = 100,
+    coverage_text = `100% văn bản (${total_chunks}/${total_chunks} câu)`,
+    warning = null,
   } = report;
 
   const score = Math.round(Number(plagiarism_score) || 0);
@@ -178,6 +183,32 @@ export function PlagiarismReportView({
         </div>
       </div>
 
+      {/* Serper / API Warning Banner */}
+      {warning && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.85rem',
+            padding: '1rem 1.25rem',
+            borderRadius: '14px',
+            backgroundColor: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            color: '#fef3c7',
+          }}
+        >
+          <AlertTriangle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fbbf24', marginBottom: '0.2rem' }}>
+              Cảnh báo Dịch vụ Tìm kiếm Nguồn Web
+            </div>
+            <div style={{ fontSize: '0.82rem', lineHeight: 1.5, color: '#fde68a' }}>
+              {warning}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top 4 Stats Cards */}
       <div
         style={{
@@ -270,6 +301,27 @@ export function PlagiarismReportView({
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>
             Từ ngữ trong văn bản phân tích
+          </div>
+        </div>
+
+        {/* Coverage Card */}
+        <div
+          style={{
+            backgroundColor: '#151C2F',
+            borderRadius: '16px',
+            padding: '1.25rem',
+            border: '1px solid rgba(34, 197, 94, 0.25)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 500 }}>Độ phủ kiểm tra</span>
+            <CheckCircle2 size={18} color="#22C55E" />
+          </div>
+          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#4ade80' }}>
+            {coverage_percentage}%
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#86efac', marginTop: '0.2rem', fontWeight: 600 }}>
+            {coverage_text || `100% văn bản (${total_chunks}/${total_chunks} câu)`}
           </div>
         </div>
       </div>

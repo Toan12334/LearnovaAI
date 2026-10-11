@@ -23,7 +23,11 @@ from src.db.supabase_client import get_supabase_client
 from src.db.qdrant_client import qdrant_service
 from src.utils.text_cleaner import TextCleaner
 from src.services.embedding import embedding_service
-from src.services.search.web_search import web_search_service
+from src.services.search.web_search import (
+    web_search_service,
+    SerperQuotaExceededError,
+    SerperServerError,
+)
 from src.services.plagiarism.winnowing import WinnowingDetector
 from src.services.plagiarism.qdrant_cache import internet_qdrant_cache
 from src.services.plagiarism.web_scraper import web_scraper
@@ -134,12 +138,13 @@ class PlagiarismPipeline:
         user_id: Optional[str],
         threshold: float,
         enable_web_search: bool,
-    ) -> Tuple[int, List[Dict[str, Any]]]:
+    ) -> Tuple[int, List[Dict[str, Any]], Optional[str]]:
         """Xử lý quét Qdrant và Serper cho 1 chunk độc lập (Hỗ trợ đa luồng)."""
         chunk_id = chunk["id"]
         chunk_text = chunk["content"]
         chunk_clean = re.sub(r"[^\w\s]", "", chunk_text.lower()).strip()
         chunk_matches: List[Dict[str, Any]] = []
+        web_error: Optional[str] = None
 
         # 1. Quét trong Qdrant
         try:
@@ -297,10 +302,16 @@ class PlagiarismPipeline:
 
                     if best_match:
                         chunk_matches.append(best_match)
+            except SerperQuotaExceededError:
+                web_error = "SERPER_429"
+                logger.error(f"Phát hiện Serper HTTP 429 (hết hạn mức/rate limit) tại câu #{idx}")
+            except SerperServerError as s_err:
+                web_error = "SERPER_5XX"
+                logger.warning(f"Serper máy chủ gặp sự cố tại câu #{idx}: {s_err}")
             except Exception as e:
                 logger.warning(f"Lỗi khi quét web cho câu #{idx}: {e}")
 
-        return idx, chunk_matches
+        return idx, chunk_matches, web_error
 
     def run(
         self,
@@ -472,6 +483,9 @@ class PlagiarismPipeline:
         max_workers = min(10, max(1, len(saved_chunks)))
         logger.info(f"-> Kích hoạt ThreadPoolExecutor với {max_workers} luồng xử lý song song.")
 
+        quota_error_chunks = 0
+        server_error_chunks = 0
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_chunk = {
                 executor.submit(
@@ -489,7 +503,12 @@ class PlagiarismPipeline:
 
             for future in as_completed(future_to_chunk):
                 try:
-                    c_idx, c_matches = future.result()
+                    c_idx, c_matches, c_err = future.result()
+                    if c_err == "SERPER_429":
+                        quota_error_chunks += 1
+                    elif c_err == "SERPER_5XX":
+                        server_error_chunks += 1
+
                     if c_matches:
                         matched_chunk_indices.add(c_idx)
                         all_matches.extend(c_matches)
@@ -576,6 +595,25 @@ class PlagiarismPipeline:
             }
         ).eq("id", document_id).execute()
 
+        # Tính toán độ phủ và phát hiện cảnh báo lỗi nguồn Web
+        web_warning = None
+        if quota_error_chunks > 0:
+            web_warning = (
+                "⚠️ Cảnh báo: Dịch vụ tìm kiếm Internet đang quá tải hoặc hết hạn mức (HTTP 429). "
+                f"Có {quota_error_chunks}/{total_sentences} câu chưa thể đối soát với nguồn Web. "
+                "Kết quả hiện chỉ phản ánh đối soát trên CSDL nội bộ."
+            )
+            logger.warning(f"Document {document_id}: {web_warning}")
+        elif server_error_chunks > 0 and server_error_chunks >= max(1, total_sentences // 2):
+            web_warning = (
+                "⚠️ Cảnh báo: Máy chủ tìm kiếm Internet gặp sự cố tạm thời (HTTP 5xx). "
+                "Kết quả có thể chưa phản ánh đầy đủ nguồn Web."
+            )
+            logger.warning(f"Document {document_id}: {web_warning}")
+
+        coverage_percentage = 100.0 if total_sentences > 0 else 0.0
+        coverage_text = f"100% văn bản ({total_sentences}/{total_sentences} câu)"
+
         result_payload = {
             "document_id": document_id,
             "title": title,
@@ -585,6 +623,9 @@ class PlagiarismPipeline:
             "plagiarism_score": weighted_plagiarism_score,
             "exact_match_score": exact_percentage,
             "paraphrase_score": paraphrased_percentage,
+            "coverage_percentage": coverage_percentage,
+            "coverage_text": coverage_text,
+            "warning": web_warning,
             "matches_count": len(all_matches),
             "matches": all_matches,
             "status": "completed",

@@ -77,6 +77,9 @@ async def check_plagiarism(
             exact_match_score=result.get("exact_match_score", 0.0),
             paraphrase_score=result.get("paraphrase_score", 0.0),
             is_plagiarized=score > 15.0,
+            coverage_percentage=result.get("coverage_percentage", 100.0),
+            coverage_text=result.get("coverage_text", "100% văn bản"),
+            warning=result.get("warning"),
             matches=matches_models,
             status=result.get("status", "completed"),
             message="Kiểm tra đối soát thành công."
@@ -205,6 +208,9 @@ async def get_check_status(document_id: str):
         exact_match_score=job_info.get("exact_match_score"),
         paraphrase_score=job_info.get("paraphrase_score"),
         is_plagiarized=bool(score and score > 15.0),
+        coverage_percentage=job_info.get("coverage_percentage", 100.0),
+        coverage_text=job_info.get("coverage_text", "100% văn bản"),
+        warning=job_info.get("warning"),
         matches=matches_data,
         message="Tra cứu trạng thái thành công.",
     )
@@ -257,6 +263,9 @@ async def check_plagiarism_file(
             exact_match_score=result.get("exact_match_score", 0.0),
             paraphrase_score=result.get("paraphrase_score", 0.0),
             is_plagiarized=score > 15.0,
+            coverage_percentage=result.get("coverage_percentage", 100.0),
+            coverage_text=result.get("coverage_text", "100% văn bản"),
+            warning=result.get("warning"),
             matches=matches_models,
             status=result.get("status", "completed"),
             message="Xử lý file và đối soát đạo văn thành công."
