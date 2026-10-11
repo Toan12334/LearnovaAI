@@ -80,6 +80,20 @@ class PaymentService:
     def supabase(self):
         return get_supabase_client()
 
+    @property
+    def payos_client(self):
+        """Khởi tạo PayOS SDK client chính thức."""
+        client_id = (settings.PAYOS_CLIENT_ID or "").strip()
+        api_key = (settings.PAYOS_API_KEY or "").strip()
+        checksum_key = (settings.PAYOS_CHECKSUM_KEY or "").strip()
+        if client_id and api_key and checksum_key:
+            try:
+                from payos import PayOS
+                return PayOS(client_id=client_id, api_key=api_key, checksum_key=checksum_key)
+            except Exception as e:
+                logger.error(f"[PayOS] Khởi tạo client lỗi: {e}")
+        return None
+
     def get_packages(self) -> List[Dict[str, Any]]:
         """Lấy danh sách các gói cước đang áp dụng."""
         try:
@@ -360,6 +374,22 @@ class PaymentService:
 
         order = res.data[0]
         status = order.get("status", "PENDING")
+
+        # NẾU ĐƠN VẪN PENDING, TỰ ĐỘNG ĐỐI SOÁT TRỰC TIẾP VỚI PAYOS API (Dual-Channel Guarantee)
+        if status == "PENDING" and self.payos_client:
+            try:
+                payos_info = self.payos_client.payment_requests.get(int(order_code))
+                if payos_info and getattr(payos_info, "status", None) == "PAID":
+                    logger.info(
+                        f"[PayOS Polling Sync] Đơn hàng {order_code} đã thanh toán thành công "
+                        f"theo PayOS API! Tự động cộng từ ngay lập tức."
+                    )
+                    self.complete_payment(int(order_code), raw_webhook={"source": "polling_payos_api_sync"})
+                    status = "PAID"
+                    order["status"] = "PAID"
+            except Exception as sync_err:
+                logger.debug(f"[PayOS Polling Sync] Chưa có cập nhật từ PayOS: {sync_err}")
+
         user_id = order.get("user_id")
         current_balance = None
 
@@ -390,19 +420,35 @@ class PaymentService:
     def verify_and_process_webhook(self, payload: Dict[str, Any]) -> bool:
         """Xác thực Webhook từ PayOS và kích hoạt cộng từ."""
         data = payload.get("data", {})
-        signature = payload.get("signature", "")
-        checksum_key = (settings.PAYOS_CHECKSUM_KEY or "").strip()
-
-        # Nếu có checksum_key, kiểm tra chữ ký HMAC
-        if checksum_key:
-            expected_sig = self._sign_payos_payload(data, checksum_key)
-            if expected_sig != signature:
-                logger.warning(f"[PayOS Webhook] Chữ ký không hợp lệ! Nhận: {signature}, Mong đợi: {expected_sig}")
-                return False
-
         order_code = data.get("orderCode")
-        if order_code:
+
+        # 1. Thử xác thực chữ ký số bằng SDK PayOS chính thức
+        verified = False
+        if self.payos_client:
+            try:
+                verified_data = self.payos_client.webhooks.verify(payload)
+                if verified_data:
+                    verified = True
+                    if getattr(verified_data, "order_code", None):
+                        order_code = verified_data.order_code
+            except Exception as e:
+                logger.warning(f"[PayOS Webhook] SDK verify: {e}. Thử fallback kiểm tra API.")
+
+        # 2. Fallback: Nếu SDK báo lỗi chữ ký nhưng có orderCode,
+        # kiểm tra trực tiếp trạng thái với PayOS API để đảm bảo an toàn tuyệt đối 100%
+        if not verified and order_code and self.payos_client:
+            try:
+                payos_info = self.payos_client.payment_requests.get(int(order_code))
+                if payos_info and getattr(payos_info, "status", None) == "PAID":
+                    logger.info(f"[PayOS Webhook Fallback] Đơn {order_code} được xác thực PAID trực tiếp từ PayOS API!")
+                    verified = True
+            except Exception as api_err:
+                logger.error(f"[PayOS Webhook Fallback] Không thể check PayOS API: {api_err}")
+
+        # 3. Kích hoạt hoàn tất thanh toán & cộng từ nếu hợp lệ
+        if (verified or not settings.PAYOS_CHECKSUM_KEY) and order_code:
             return self.complete_payment(int(order_code), raw_webhook=payload)
+
         return False
 
 

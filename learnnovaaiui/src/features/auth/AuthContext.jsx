@@ -105,6 +105,23 @@ export function AuthProvider({ children }) {
     });
   };
 
+  const refreshUser = async () => {
+    const savedToken = localStorage.getItem('learnova_token');
+    if (savedToken) {
+      try {
+        const profile = await authApi.getMe();
+        if (profile && profile.id) {
+          setUser(profile);
+          localStorage.setItem('learnova_user', JSON.stringify(profile));
+          return profile;
+        }
+      } catch (err) {
+        console.warn('[Auth] Không thể làm mới dữ liệu người dùng:', err);
+      }
+    }
+    return null;
+  };
+
   const value = {
     user,
     token,
@@ -117,6 +134,7 @@ export function AuthProvider({ children }) {
     signOut,
     setUser,
     updateWordsBalance,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

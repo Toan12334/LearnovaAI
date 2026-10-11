@@ -3,7 +3,16 @@ import { LogOut, User, LogIn, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../features/auth';
 
 export function Navbar({ currentPage, onNavigate, onOpenAuth, onOpenPricing }) {
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, signOut, refreshUser } = useAuth();
+
+  // Tự động làm mới thông tin số dư tài khoản khi tải trang hoặc định kỳ
+  React.useEffect(() => {
+    if (isAuthenticated && refreshUser) {
+      refreshUser();
+      const interval = setInterval(refreshUser, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
 
   const navItems = [
     { id: 'home', label: 'Trang chủ' },
