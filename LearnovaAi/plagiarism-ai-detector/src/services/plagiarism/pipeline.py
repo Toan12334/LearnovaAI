@@ -89,6 +89,9 @@ class PlagiarismPipeline:
                     "current_step": "Hoàn tất" if status == "completed" else "Đang xử lý",
                     "word_count": d.get("word_count", 0),
                     "plagiarism_score": d.get("plagiarism_score", 0.0),
+                    "coverage_percentage": d.get("coverage_percentage"),
+                    "coverage_text": d.get("coverage_text"),
+                    "warning": d.get("warning"),
                     "created_at": d.get("created_at"),
                 }
         except Exception as exc:
@@ -138,13 +141,15 @@ class PlagiarismPipeline:
         user_id: Optional[str],
         threshold: float,
         enable_web_search: bool,
-    ) -> Tuple[int, List[Dict[str, Any]], Optional[str]]:
+        quota_event: Optional[threading.Event] = None,
+    ) -> Tuple[int, List[Dict[str, Any]], Optional[str], bool]:
         """Xử lý quét Qdrant và Serper cho 1 chunk độc lập (Hỗ trợ đa luồng)."""
         chunk_id = chunk["id"]
         chunk_text = chunk["content"]
         chunk_clean = re.sub(r"[^\w\s]", "", chunk_text.lower()).strip()
         chunk_matches: List[Dict[str, Any]] = []
         web_error: Optional[str] = None
+        web_checked = False
 
         # 1. Quét trong Qdrant
         try:
@@ -189,7 +194,11 @@ class PlagiarismPipeline:
 
         # 2. Quét qua Serper (Web search)
         clean_for_search = chunk_text.strip(".,;:!?…'\"-—()[] \t\n")
-        if enable_web_search and len(clean_for_search) >= 8:
+        needs_web = enable_web_search and len(clean_for_search) >= 8
+        if needs_web and quota_event is not None and quota_event.is_set():
+            # Circuit breaker: quota Serper đã cạn ở chunk khác → bỏ qua, không gọi mạng tiếp
+            web_error = "SERPER_429"
+        elif needs_web:
             try:
                 if len(clean_for_search) >= 12:
                     query_term = f'"{clean_for_search[:80]}"'
@@ -304,14 +313,23 @@ class PlagiarismPipeline:
                         chunk_matches.append(best_match)
             except SerperQuotaExceededError:
                 web_error = "SERPER_429"
+                if quota_event is not None:
+                    # Ngắt mạch toàn cục: các chunk còn lại sẽ không gọi Serper nữa
+                    quota_event.set()
                 logger.error(f"Phát hiện Serper HTTP 429 (hết hạn mức/rate limit) tại câu #{idx}")
             except SerperServerError as s_err:
                 web_error = "SERPER_5XX"
                 logger.warning(f"Serper máy chủ gặp sự cố tại câu #{idx}: {s_err}")
             except Exception as e:
                 logger.warning(f"Lỗi khi quét web cho câu #{idx}: {e}")
+            else:
+                # Nhánh web hoàn tất không lỗi → chunk này đã được đối soát web
+                web_checked = True
+        else:
+            # Không cần gọi web (tắt web search hoặc câu quá ngắn) — không tính là lỗi phủ
+            web_checked = True
 
-        return idx, chunk_matches, web_error
+        return idx, chunk_matches, web_error, web_checked
 
     def run(
         self,
@@ -483,8 +501,12 @@ class PlagiarismPipeline:
         max_workers = min(10, max(1, len(saved_chunks)))
         logger.info(f"-> Kích hoạt ThreadPoolExecutor với {max_workers} luồng xử lý song song.")
 
-        quota_error_chunks = 0
-        server_error_chunks = 0
+        # Circuit breaker dùng chung cho toàn bộ worker: khi 1 luồng phát hiện Serper 429
+        # (hết quota/rate-limit), mọi chunk còn lại bỏ qua call mạng thay vì bắn tiếp hàng trăm request vô ích.
+        quota_event = threading.Event()
+        quota_hit = False
+        web_verified_units = 0
+        server_unverified_units = 0
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_chunk = {
@@ -497,17 +519,20 @@ class PlagiarismPipeline:
                     user_id,
                     threshold,
                     enable_web_search,
+                    quota_event,
                 ): idx
                 for idx, (chunk, vector) in enumerate(zip(saved_chunks, vectors))
             }
 
             for future in as_completed(future_to_chunk):
                 try:
-                    c_idx, c_matches, c_err = future.result()
+                    c_idx, c_matches, c_err, c_web_ok = future.result()
                     if c_err == "SERPER_429":
-                        quota_error_chunks += 1
+                        quota_hit = True
                     elif c_err == "SERPER_5XX":
-                        server_error_chunks += 1
+                        server_unverified_units += 1
+                    if c_web_ok:
+                        web_verified_units += 1
 
                     if c_matches:
                         matched_chunk_indices.add(c_idx)
@@ -583,36 +608,58 @@ class PlagiarismPipeline:
             min(100.0, exact_percentage * 1.0 + paraphrased_percentage * 0.75), 2
         )
 
-        # Cập nhật trạng thái 'completed' và điểm vào Supabase documents
-        logger.info(
-            f"-> Cập nhật tài liệu: status='completed', plagiarism_score={weighted_plagiarism_score}% "
-            f"(exact={exact_percentage}%, paraphrase={paraphrased_percentage}%)"
-        )
-        self.supabase.table("documents").update(
-            {
-                "status": "completed",
-                "plagiarism_score": weighted_plagiarism_score,
-            }
-        ).eq("id", document_id).execute()
+        # -------------------------------------------------------------
+        # Độ phủ đối soát web + cảnh báo minh bạch (tính TRƯỚC khi ghi DB)
+        # -------------------------------------------------------------
+        total_units = max(1, len(saved_chunks))
+        if enable_web_search:
+            unverified_units = max(0, total_units - web_verified_units)
+            coverage_percentage = round((web_verified_units / total_units) * 100, 1)
+            coverage_text = f"{coverage_percentage}% văn bản ({web_verified_units}/{total_units} câu)"
+        else:
+            unverified_units = 0
+            coverage_percentage = None  # Không bật web search → không có độ phủ web để công bố
+            coverage_text = None
 
-        # Tính toán độ phủ và phát hiện cảnh báo lỗi nguồn Web
         web_warning = None
-        if quota_error_chunks > 0:
+        if enable_web_search and quota_hit:
             web_warning = (
-                "⚠️ Cảnh báo: Dịch vụ tìm kiếm Internet đang quá tải hoặc hết hạn mức (HTTP 429). "
-                f"Có {quota_error_chunks}/{total_sentences} câu chưa thể đối soát với nguồn Web. "
-                "Kết quả hiện chỉ phản ánh đối soát trên CSDL nội bộ."
+                "⚠️ Cảnh báo: Dịch vụ tìm kiếm Internet đã hết hạn mức hoặc quá tải (HTTP 429). "
+                f"Có {unverified_units}/{total_units} câu CHƯA được đối soát với nguồn Web. "
+                "Kết quả chỉ phản ánh đối soát với CSDL nội bộ."
             )
             logger.warning(f"Document {document_id}: {web_warning}")
-        elif server_error_chunks > 0 and server_error_chunks >= max(1, total_sentences // 2):
+        elif enable_web_search and server_unverified_units >= max(1, round(total_units * 0.2)):
             web_warning = (
                 "⚠️ Cảnh báo: Máy chủ tìm kiếm Internet gặp sự cố tạm thời (HTTP 5xx). "
-                "Kết quả có thể chưa phản ánh đầy đủ nguồn Web."
+                f"Có {server_unverified_units}/{total_units} câu chưa đối soát được với nguồn Web."
             )
             logger.warning(f"Document {document_id}: {web_warning}")
 
-        coverage_percentage = 100.0 if total_sentences > 0 else 0.0
-        coverage_text = f"100% văn bản ({total_sentences}/{total_sentences} câu)"
+        # Cập nhật trạng thái 'completed' + điểm + coverage/warning vào Supabase documents
+        logger.info(
+            f"-> Cập nhật tài liệu: status='completed', plagiarism_score={weighted_plagiarism_score}% "
+            f"(exact={exact_percentage}%, paraphrase={paraphrased_percentage}%, coverage={coverage_percentage})"
+        )
+        base_update = {
+            "status": "completed",
+            "plagiarism_score": weighted_plagiarism_score,
+        }
+        try:
+            self.supabase.table("documents").update({
+                **base_update,
+                "coverage_percentage": coverage_percentage,
+                "coverage_text": coverage_text,
+                "warning": web_warning,
+            }).eq("id", document_id).execute()
+        except Exception as persist_err:
+            logger.warning(
+                f"Không lưu được coverage/warning vào bảng documents (thiếu cột?): {persist_err}. "
+                "Fallback chỉ cập nhật status/score. SQL gợi ý: "
+                "ALTER TABLE documents ADD COLUMN coverage_percentage float8, "
+                "ADD COLUMN coverage_text text, ADD COLUMN warning text;"
+            )
+            self.supabase.table("documents").update(base_update).eq("id", document_id).execute()
 
         result_payload = {
             "document_id": document_id,

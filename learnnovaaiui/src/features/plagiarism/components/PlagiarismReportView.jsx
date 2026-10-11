@@ -44,8 +44,8 @@ export function PlagiarismReportView({
     paraphrase_score = 0,
     is_plagiarized = false,
     matches = [],
-    coverage_percentage = 100,
-    coverage_text = `100% văn bản (${total_chunks}/${total_chunks} câu)`,
+    coverage_percentage = null,
+    coverage_text = null,
     warning = null,
   } = report;
 
@@ -60,9 +60,17 @@ export function PlagiarismReportView({
     ? Math.round((webMatches.length / total_chunks) * 100) 
     : (matches.length > 0 ? Math.round(score * 0.7) : 0);
     
-  const internalPercentage = total_chunks > 0 
-    ? Math.round((internalMatches.length / total_chunks) * 100) 
+  const internalPercentage = total_chunks > 0
+    ? Math.round((internalMatches.length / total_chunks) * 100)
     : (score - webPercentage);
+
+  // Độ phủ đối soát web: chỉ hiển thị "đạt/xanh" khi thực sự đầy đủ (100%) và không có cảnh báo
+  const coverageKnown = typeof coverage_percentage === 'number';
+  const coverageOk = coverageKnown && coverage_percentage >= 99.9 && !warning;
+  const CoverageStatusIcon = coverageOk ? CheckCircle2 : AlertTriangle;
+  const coverageAccent = coverageOk ? '#22C55E' : '#F59E0B';
+  const coverageAccentSoft = coverageOk ? '#4ade80' : '#fbbf24';
+  const coverageAccentText = coverageOk ? '#86efac' : '#fde68a';
 
   const getScoreColor = (val) => {
     if (val >= 40) return '#EF4444'; // Red
@@ -310,18 +318,18 @@ export function PlagiarismReportView({
             backgroundColor: '#151C2F',
             borderRadius: '16px',
             padding: '1.25rem',
-            border: '1px solid rgba(34, 197, 94, 0.25)',
+            border: coverageOk ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid rgba(245, 158, 11, 0.35)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 500 }}>Độ phủ kiểm tra</span>
-            <CheckCircle2 size={18} color="#22C55E" />
+            <CoverageStatusIcon size={18} color={coverageAccent} />
           </div>
-          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#4ade80' }}>
-            {coverage_percentage}%
+          <div style={{ fontSize: '2.2rem', fontWeight: 800, color: coverageAccentSoft }}>
+            {coverageKnown ? `${Math.round(coverage_percentage)}%` : '—'}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#86efac', marginTop: '0.2rem', fontWeight: 600 }}>
-            {coverage_text || `100% văn bản (${total_chunks}/${total_chunks} câu)`}
+          <div style={{ fontSize: '0.75rem', color: coverageAccentText, marginTop: '0.2rem', fontWeight: 600 }}>
+            {coverage_text || (coverageKnown ? `${Math.round(coverage_percentage)}% văn bản` : 'Chưa xác định được độ phủ')}
           </div>
         </div>
       </div>
