@@ -156,7 +156,7 @@ export function AIDetectorForm({ onAnalyze, isLoading = false, isAuthenticated =
           size="lg"
           isLoading={isLoading}
           disabled={isAuthenticated && text.trim().length < 50}
-          icon={!isAuthenticated ? <Lock className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+          icon={!isAuthenticated ? <Lock className="w-4 h-4" /> : null}
         >
           {!isAuthenticated ? 'Đăng nhập để Phân tích' : 'Nhận diện AI Generated'}
         </Button>
