@@ -595,11 +595,18 @@ export function AdminUsersPage({ onBack }) {
                         </span>
                       </td>
 
-                      {/* Document Checks Count */}
-                      <td className="py-3 px-3 text-slate-600 font-semibold">
-                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700">
-                          {u.total_documents ?? 0} bài
-                        </span>
+                      {/* Check Counts: Đạo văn & Check AI */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/60" title="Số lần kiểm tra đạo văn">
+                            <span className="text-slate-500 font-medium">Đạo văn:</span>
+                            <span className="text-blue-900 font-extrabold">{u.plagiarism_checks ?? u.total_documents ?? 0}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60" title="Số lần kiểm tra nhận diện AI (PhoBERT)">
+                            <span className="text-slate-500 font-medium">Check AI:</span>
+                            <span className="text-purple-900 font-extrabold">{u.ai_checks ?? 0}</span>
+                          </span>
+                        </div>
                       </td>
 
                       {/* Registration Date */}
@@ -942,38 +949,48 @@ export function AdminUsersPage({ onBack }) {
                 <div className="py-12 text-center text-slate-400 font-semibold">Đang tải dữ liệu chi tiết...</div>
               ) : (
                 <>
-                  {/* Summary Grid */}
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* Summary Grid with Plagiarism & AI Check counts */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                       <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Số dư từ</div>
-                      <div className="text-lg font-black text-amber-600">
+                      <div className="text-base font-black text-amber-600">
                         {(selectedUser.words_balance ?? 0).toLocaleString('vi-VN')} từ
                       </div>
                     </div>
 
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                       <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Trạng thái</div>
-                      <div className="text-sm font-bold text-slate-800">
+                      <div className="text-xs font-bold text-slate-800">
                         {(selectedUser.status || 'active') === 'active' ? '✅ Hoạt động' : '🚫 Đã khóa'}
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                      <div className="text-[10px] text-slate-400 font-bold uppercase mb-1">Ngày đăng ký</div>
-                      <div className="text-xs font-semibold text-slate-700">
-                        {formatDate(selectedUser.created_at)}
+                    <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200/70">
+                      <div className="text-[10px] text-blue-700 font-bold uppercase mb-1">Check Đạo văn</div>
+                      <div className="text-base font-black text-blue-900">
+                        {userDetailData?.plagiarism_checks ?? userDetailData?.total_documents ?? 0} lần
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200/70">
+                      <div className="text-[10px] text-purple-700 font-bold uppercase mb-1">Check AI (PhoBERT)</div>
+                      <div className="text-base font-black text-purple-900">
+                        {userDetailData?.ai_checks ?? 0} lần
                       </div>
                     </div>
                   </div>
 
-                  {/* Recent Checked Documents */}
+                  {/* Recent Plagiarism Checked Documents */}
                   <div>
                     <h4 className="text-sm font-bold text-slate-900 mb-2.5 flex items-center justify-between">
-                      <span>Lịch sử kiểm tra gần nhất ({userDetailData?.recent_documents?.length ?? 0})</span>
+                      <span>Lịch sử kiểm tra đạo văn ({userDetailData?.recent_documents?.length ?? 0})</span>
+                      <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200/60">
+                        Tổng {userDetailData?.plagiarism_checks ?? userDetailData?.total_documents ?? 0} lần
+                      </span>
                     </h4>
 
                     {userDetailData?.recent_documents?.length === 0 ? (
-                      <p className="p-4 rounded-xl bg-slate-50 text-slate-400 text-center">Người dùng chưa kiểm tra tài liệu nào.</p>
+                      <p className="p-4 rounded-xl bg-slate-50 text-slate-400 text-center">Người dùng chưa kiểm tra đạo văn tài liệu nào.</p>
                     ) : (
                       <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
                         {userDetailData?.recent_documents?.map((doc) => (
@@ -987,6 +1004,37 @@ export function AdminUsersPage({ onBack }) {
                                 {doc.plagiarism_score ?? 0}%
                               </span>
                               <div className="text-[10px] text-slate-400 font-bold">Trùng lặp</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Recent AI Detection Checks */}
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 mb-2.5 flex items-center justify-between">
+                      <span>Lịch sử kiểm tra nhận diện AI PhoBERT ({userDetailData?.recent_ai_detections?.length ?? 0})</span>
+                      <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200/60">
+                        Tổng {userDetailData?.ai_checks ?? 0} lần
+                      </span>
+                    </h4>
+
+                    {(!userDetailData?.recent_ai_detections || userDetailData.recent_ai_detections.length === 0) ? (
+                      <p className="p-4 rounded-xl bg-slate-50 text-slate-400 text-center">Người dùng chưa thực hiện lượt kiểm tra AI nào.</p>
+                    ) : (
+                      <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100">
+                        {userDetailData.recent_ai_detections.map((ai) => (
+                          <div key={ai.id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="max-w-md">
+                              <div className="font-bold text-slate-800 truncate">{ai.title || 'Phân tích AI'}</div>
+                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">{ai.word_count || 0} từ • {formatDate(ai.created_at)}</div>
+                            </div>
+                            <div className="text-right">
+                              <span className={`font-black text-sm ${(ai.ai_score ?? 0) >= 50 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                {Math.round(ai.ai_score ?? 0)}%
+                              </span>
+                              <div className="text-[10px] text-slate-400 font-bold">Tỷ lệ AI</div>
                             </div>
                           </div>
                         ))}

@@ -78,6 +78,29 @@ async def detect_ai_generated_content(
         overall_score = float(result["overall_ai_score"])
         model_health = result["model_health"]
         is_reliable = bool(model_health["is_reliable"])
+
+        # Ghi nhận lượt kiểm tra AI vào bảng ai_detections phục vụ thống kê & quản trị
+        try:
+            from src.db.supabase_client import get_supabase_client
+            supabase = get_supabase_client()
+            user_id = current_user.get("id") or current_user.get("sub")
+            if user_id:
+                raw_text = payload.text or ""
+                words = len(raw_text.split())
+                title_preview = raw_text[:60].replace("\n", " ").strip()
+                if len(title_preview) > 50:
+                    title_preview = title_preview[:50] + "..."
+                supabase.table("ai_detections").insert({
+                    "user_id": user_id,
+                    "title": title_preview or f"Phân tích AI ({words} từ)",
+                    "text_sample": raw_text[:300],
+                    "word_count": words,
+                    "ai_score": overall_score,
+                    "is_ai_generated": overall_score >= 50.0 if is_reliable else False,
+                }).execute()
+        except Exception:
+            pass
+
         return AIDetectionResponse(
             ai_probability=round(overall_score / 100, 4) if is_reliable else None,
             statistical_score_percentage=overall_score,

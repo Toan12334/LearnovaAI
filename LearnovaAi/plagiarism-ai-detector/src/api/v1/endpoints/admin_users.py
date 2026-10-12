@@ -81,11 +81,20 @@ async def get_admin_user_stats(
                 except Exception:
                     pass
 
-        # 2. Tổng số tài liệu đã kiểm tra
+        # 2. Tổng số tài liệu kiểm tra đạo văn và nhận diện AI
         docs_res = supabase.table("documents").select("id", count="exact").execute()
         total_documents = docs_res.count if hasattr(docs_res, "count") and docs_res.count is not None else 0
         if not total_documents and docs_res.data:
             total_documents = len(docs_res.data)
+
+        total_ai_checks = 0
+        try:
+            ai_res = supabase.table("ai_detections").select("id", count="exact").execute()
+            total_ai_checks = ai_res.count if hasattr(ai_res, "count") and ai_res.count is not None else 0
+            if not total_ai_checks and ai_res.data:
+                total_ai_checks = len(ai_res.data)
+        except Exception:
+            pass
 
         return {
             "total_users": total_users,
@@ -95,6 +104,8 @@ async def get_admin_user_stats(
             "new_users_last_7_days": new_users_7d,
             "total_words_allocated": total_words_allocated,
             "total_documents_checked": total_documents,
+            "total_plagiarism_checks": total_documents,
+            "total_ai_checks": total_ai_checks,
         }
     except Exception as exc:
         logger.error(f"[Admin Stats Error]: {exc}")
@@ -171,18 +182,30 @@ async def list_admin_users(
                         pass
 
             user_ids = [u["id"] for u in users]
+            doc_counts: Dict[str, int] = {}
+            ai_counts: Dict[str, int] = {}
             try:
                 docs_res = supabase.table("documents").select("user_id").in_("user_id", user_ids).execute()
-                doc_counts: Dict[str, int] = {}
                 for d in (docs_res.data or []):
                     uid = d.get("user_id")
                     if uid:
                         doc_counts[uid] = doc_counts.get(uid, 0) + 1
-                for u in users:
-                    u["total_documents"] = doc_counts.get(u["id"], 0)
             except Exception:
-                for u in users:
-                    u["total_documents"] = 0
+                pass
+
+            try:
+                ai_res = supabase.table("ai_detections").select("user_id").in_("user_id", user_ids).execute()
+                for a in (ai_res.data or []):
+                    uid = a.get("user_id")
+                    if uid:
+                        ai_counts[uid] = ai_counts.get(uid, 0) + 1
+            except Exception:
+                pass
+
+            for u in users:
+                u["plagiarism_checks"] = doc_counts.get(u["id"], 0)
+                u["ai_checks"] = ai_counts.get(u["id"], 0)
+                u["total_documents"] = u["plagiarism_checks"]
 
         total_pages = (total + page_size - 1) // page_size if total > 0 else 1
 
@@ -206,33 +229,54 @@ async def get_admin_user_detail(
     user_id: str,
     admin: Dict[str, Any] = Depends(get_current_admin),
 ):
-    """Lấy chi tiết hồ sơ, 10 lượt kiểm tra tài liệu gần nhất và lịch sử giao dịch."""
+    """Lấy chi tiết hồ sơ, 10 lượt kiểm tra tài liệu gần nhất, lịch sử AI và lịch sử giao dịch."""
+    clean_uid = user_id.strip()
     supabase = get_supabase_client()
     try:
         # 1. Profile
-        prof_res = supabase.table("profiles").select("*").eq("id", user_id).limit(1).execute()
+        prof_res = supabase.table("profiles").select("*").eq("id", clean_uid).limit(1).execute()
         if not prof_res.data:
             raise HTTPException(status_code=404, detail="Không tìm thấy người dùng.")
         profile = prof_res.data[0]
 
-        # 2. 10 Tài liệu kiểm tra gần nhất
+        # 2. 10 Tài liệu kiểm tra đạo văn gần nhất & tổng số lần
         docs_res = (
             supabase.table("documents")
             .select("id, title, plagiarism_score, ai_score, status, word_count, created_at")
-            .eq("user_id", user_id)
+            .eq("user_id", clean_uid)
             .order("created_at", desc=True)
             .limit(10)
             .execute()
         )
         recent_documents = docs_res.data or []
+        doc_count_res = supabase.table("documents").select("id", count="exact").eq("user_id", clean_uid).execute()
+        total_plagiarism = doc_count_res.count if hasattr(doc_count_res, "count") and doc_count_res.count is not None else len(recent_documents)
 
-        # 3. Lịch sử giao dịch (nếu bảng transactions tồn tại)
+        # 3. 10 Lượt kiểm tra PhoBERT AI gần nhất & tổng số lần
+        recent_ai = []
+        total_ai = 0
+        try:
+            ai_res = (
+                supabase.table("ai_detections")
+                .select("id, title, text_sample, word_count, ai_score, is_ai_generated, created_at")
+                .eq("user_id", clean_uid)
+                .order("created_at", desc=True)
+                .limit(10)
+                .execute()
+            )
+            recent_ai = ai_res.data or []
+            ai_count_res = supabase.table("ai_detections").select("id", count="exact").eq("user_id", clean_uid).execute()
+            total_ai = ai_count_res.count if hasattr(ai_count_res, "count") and ai_count_res.count is not None else len(recent_ai)
+        except Exception:
+            pass
+
+        # 4. Lịch sử giao dịch (nếu bảng transactions tồn tại)
         recent_transactions = []
         try:
             tx_res = (
                 supabase.table("transactions")
                 .select("*")
-                .eq("user_id", user_id)
+                .eq("user_id", clean_uid)
                 .order("created_at", desc=True)
                 .limit(10)
                 .execute()
@@ -244,8 +288,11 @@ async def get_admin_user_detail(
         return {
             "user": profile,
             "recent_documents": recent_documents,
+            "recent_ai_detections": recent_ai,
             "recent_transactions": recent_transactions,
-            "total_documents": len(recent_documents),
+            "total_documents": total_plagiarism,
+            "plagiarism_checks": total_plagiarism,
+            "ai_checks": total_ai,
         }
     except HTTPException:
         raise
@@ -489,6 +536,10 @@ async def delete_user_by_admin(
         # 2. Xóa các tài liệu liên quan
         try:
             supabase.table("documents").delete().eq("user_id", clean_uid).execute()
+        except Exception:
+            pass
+        try:
+            supabase.table("ai_detections").delete().eq("user_id", clean_uid).execute()
         except Exception:
             pass
 
