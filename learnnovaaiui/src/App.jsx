@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
-import { HomePage, HistoryPage, ReportPage } from './pages';
+import { HomePage, HistoryPage, ReportPage, AdminUsersPage } from './pages';
 import { AuthProvider, AuthModal } from './features/auth';
 import { PricingModal } from './features/payment';
 
@@ -12,7 +12,7 @@ function AppContent() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
   const [isPricingOpen, setIsPricingOpen] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   // Tự động lắng nghe sự kiện khi một tác vụ cần đăng nhập hoặc cần nạp từ
   React.useEffect(() => {
@@ -47,6 +47,10 @@ function AppContent() {
       handleOpenAuth('signin');
       return;
     }
+    if (page === 'admin-users' && user?.role !== 'admin') {
+      setCurrentPage('home');
+      return;
+    }
     setCurrentPage(page);
   };
 
@@ -75,6 +79,9 @@ function AppContent() {
         )}
         {currentPage === 'report' && (
           <ReportPage reportId={selectedReportId} onBack={() => setCurrentPage('history')} />
+        )}
+        {currentPage === 'admin-users' && (
+          <AdminUsersPage onBack={() => setCurrentPage('home')} />
         )}
       </main>
 

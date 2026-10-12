@@ -19,6 +19,7 @@ export function Navbar({ currentPage, onNavigate, onOpenAuth, onOpenPricing }) {
     { id: 'history', label: 'Lịch sử tra cứu' },
     { id: 'report', label: 'Báo cáo mẫu' },
     { id: 'pricing', label: 'Bảng giá' },
+    ...(user?.role === 'admin' ? [{ id: 'admin-users', label: '🛡️ Quản trị User' }] : []),
   ];
 
   return (

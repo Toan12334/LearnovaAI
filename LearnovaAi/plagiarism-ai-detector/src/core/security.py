@@ -126,6 +126,7 @@ async def get_current_user(
             user_info["full_name"] = prof.get("full_name")
             user_info["avatar_url"] = prof.get("avatar_url")
             user_info["role"] = prof.get("role") or "user"
+            user_info["status"] = prof.get("status") or "active"
             user_info["words_balance"] = prof.get("words_balance") if prof.get("words_balance") is not None else 5000
             user_info["organization_id"] = prof.get("organization_id")
             user_info["created_at"] = prof.get("created_at")
@@ -133,15 +134,38 @@ async def get_current_user(
             user_info["full_name"] = user_info["user_metadata"].get("full_name")
             user_info["avatar_url"] = user_info["user_metadata"].get("avatar_url")
             user_info["role"] = "user"
+            user_info["status"] = "active"
             user_info["words_balance"] = 5000
             user_info["organization_id"] = None
     except Exception as e:
         logger.warning(f"Không thể truy vấn bảng profiles cho user {user_info['id']}: {e}")
         user_info["role"] = "user"
+        user_info["status"] = "active"
         user_info["words_balance"] = 5000
         user_info["organization_id"] = None
 
+    # Chặn tài khoản đã bị khóa (banned)
+    if user_info.get("status") == "banned":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa bởi Quản trị viên. Vui lòng liên hệ bộ phận hỗ trợ.",
+        )
+
     return user_info
+
+
+async def get_current_admin(
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """
+    FastAPI Dependency: Bắt buộc tài khoản phải có vai trò Quản trị viên ('admin').
+    """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Quyền truy cập bị từ chối. Tính năng chỉ dành riêng cho Quản trị viên (Admin).",
+        )
+    return current_user
 
 
 async def get_optional_current_user(
