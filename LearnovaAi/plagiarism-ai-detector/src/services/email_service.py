@@ -71,19 +71,6 @@ class EmailService:
         clean_email = email.strip().lower()
         now = datetime.now(timezone.utc)
 
-        # 0. Chặn email rác / disposable / temp mail chống spam bot
-        DISPOSABLE_DOMAINS = {
-            "maxxspace.com", "tempmail.com", "temp-mail.org", "10minutemail.com",
-            "guerrillamail.com", "mailinator.com", "yopmail.com", "sharklasers.com",
-            "dispostable.com", "fakeinbox.com", "mohmal.com", "trashmail.com",
-            "generator.email", "emailondeck.com", "getairmail.com", "inboxkitten.com",
-            "tempail.com", "crazymailing.com", "throwawaymail.com", "nada.ltd"
-        }
-        domain = clean_email.split("@")[-1] if "@" in clean_email else ""
-        if domain in DISPOSABLE_DOMAINS or any(domain.endswith("." + d) for d in DISPOSABLE_DOMAINS):
-            logger.warning(f"[Spam Prevent] Chặn đăng ký email rác: {clean_email}")
-            raise ValueError("Hệ thống không chấp nhận email tạm thời (disposable/temp mail). Vui lòng sử dụng email chính thức (Gmail, Outlook, Edu...).")
-
         # 1. Kiểm tra Cooldown: Không cho gửi lại quá nhanh trong vòng 60 giây
         try:
             recent = (
