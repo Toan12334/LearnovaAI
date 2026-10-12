@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # Resend.com Configuration (Khuyên dùng số 1 - Tỷ lệ vào Inbox 99.8%)
     RESEND_API_KEY: str | None = None
-    RESEND_FROM_EMAIL: str = "LearnovaAI <onboarding@resend.dev>"
+    RESEND_FROM_EMAIL: str = "LearnovaAI <noreply@learnnovacheckai.com>"
 
     # SMTP & Email Settings (Fallback: Gmail, Brevo, SendGrid, Amazon SES)
     SMTP_HOST: str | None = None

@@ -112,14 +112,17 @@ class EmailService:
             logger.error(f"Lỗi khi lưu mã OTP vào database: {insert_err}")
             raise ValueError("Không thể khởi tạo mã xác thực. Vui lòng thử lại sau.")
 
-        # 4. Gửi email qua SMTP
+        # 4. Gửi email
         email_sent = self._dispatch_email(clean_email, otp_code, expire_minutes)
+        if not email_sent:
+            logger.error(f"[OTP Service] Không thể gửi email OTP tới {clean_email}")
+            raise ValueError("Không thể gửi email chứa mã xác thực lúc này. Vui lòng kiểm tra lại địa chỉ email hoặc thử lại sau.")
 
         return {
             "email": clean_email,
             "message": "Mã xác thực OTP đã được gửi đến hộp thư của bạn.",
             "expires_in_seconds": expire_minutes * 60,
-            "email_dispatched": email_sent,
+            "email_dispatched": True,
             # Không trả OTP về client để bảo mật
             "debug_otp": None,
         }
@@ -186,7 +189,7 @@ class EmailService:
         """
         import requests
         api_key = (settings.RESEND_API_KEY or "").strip()
-        from_email = (getattr(settings, "RESEND_FROM_EMAIL", None) or "LearnovaAI <onboarding@resend.dev>").strip()
+        from_email = (getattr(settings, "RESEND_FROM_EMAIL", None) or "LearnovaAI <noreply@learnnovacheckai.com>").strip()
 
         payload = {
             "from": from_email,
