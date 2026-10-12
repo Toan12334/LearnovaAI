@@ -29,6 +29,7 @@ class PlagiarismCheckResponse(BaseModel):
     matches: List[MatchDetail] = []
     status: str = "completed"
     message: str = "Kiểm tra hoàn tất."
+    extracted_text: Optional[str] = None
 
 
 class PlagiarismStatusResponse(BaseModel):

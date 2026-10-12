@@ -39,10 +39,21 @@ export const plagiarismApi = {
   /**
    * Check uploaded document file (PDF, DOCX, TXT)
    * @param {File} file - Uploaded File instance
+   * @param {Object} [options] - Additional parameters: title, similarity_threshold, enable_web_search
    */
-  async checkDocument(file) {
+  async checkDocument(file, options = {}) {
     const formData = new FormData();
     formData.append('file', file);
+    if (options.title) formData.append('title', options.title);
+    if (options.similarity_threshold !== undefined && options.similarity_threshold !== null) {
+      const thresholdVal = Number(options.similarity_threshold) > 1 
+        ? Number(options.similarity_threshold) / 100 
+        : Number(options.similarity_threshold);
+      formData.append('similarity_threshold', thresholdVal);
+    }
+    if (options.enable_web_search !== undefined && options.enable_web_search !== null) {
+      formData.append('enable_web_search', options.enable_web_search);
+    }
     return apiClient.postFormData('/api/v1/plagiarism/check-file', formData);
   },
 

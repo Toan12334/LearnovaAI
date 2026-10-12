@@ -221,58 +221,6 @@
           "SelectedChildIndex": 200,
           "Children": [
             {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "chunker.py",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
-              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
-              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
-              "ViewState": "AgIAAIAAAAAAAAAAAAAmwIYAAABAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
-              "WhenOpened": "2026-10-07T17:34:31.217Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Button.jsx",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\src\\components\\Button.jsx",
-              "RelativeDocumentMoniker": "learnnovaaiui\\src\\components\\Button.jsx",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\src\\components\\Button.jsx",
-              "RelativeToolTip": "learnnovaaiui\\src\\components\\Button.jsx",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAKAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
-              "WhenOpened": "2026-10-07T17:05:30.187Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": ".env",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.env",
-              "RelativeDocumentMoniker": "learnnovaaiui\\.env",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.env",
-              "RelativeToolTip": "learnnovaaiui\\.env",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2026-10-07T17:04:26.963Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": ".gitignore",
-              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.gitignore",
-              "RelativeDocumentMoniker": "learnnovaaiui\\.gitignore",
-              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.gitignore",
-              "RelativeToolTip": "learnnovaaiui\\.gitignore",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2026-10-07T17:04:24.608Z",
-              "EditorCaption": ""
-            },
-            {
               "$type": "Bookmark",
               "Name": "ST:9:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
             },
@@ -1046,6 +994,54 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "chunker.py",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
+              "RelativeDocumentMoniker": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
+              "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\src\\services\\plagiarism\\chunker.py",
+              "ViewState": "AgIAAIAAAAAAAAAAAAAmwIYAAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
+              "WhenOpened": "2026-10-07T17:34:31.217Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Button.jsx",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\src\\components\\Button.jsx",
+              "RelativeDocumentMoniker": "learnnovaaiui\\src\\components\\Button.jsx",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\src\\components\\Button.jsx",
+              "RelativeToolTip": "learnnovaaiui\\src\\components\\Button.jsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003663|",
+              "WhenOpened": "2026-10-07T17:05:30.187Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": ".env",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.env",
+              "RelativeDocumentMoniker": "learnnovaaiui\\.env",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.env",
+              "RelativeToolTip": "learnnovaaiui\\.env",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-10-07T17:04:26.963Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": ".gitignore",
+              "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.gitignore",
+              "RelativeDocumentMoniker": "learnnovaaiui\\.gitignore",
+              "ToolTip": "D:\\Documents\\0_ToolProject\\LearnovaAi\\learnnovaaiui\\.gitignore",
+              "RelativeToolTip": "learnnovaaiui\\.gitignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-10-07T17:04:24.608Z"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 5,
               "Title": "README.md",
               "DocumentMoniker": "D:\\Documents\\0_ToolProject\\LearnovaAi\\LearnovaAi\\plagiarism-ai-detector\\README.md",
@@ -1054,8 +1050,7 @@
               "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\README.md",
               "ViewState": "AgIAABsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
-              "WhenOpened": "2026-10-07T17:02:31.33Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-07T17:02:31.33Z"
             },
             {
               "$type": "Document",
@@ -1067,8 +1062,7 @@
               "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\docs\\README.md",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
-              "WhenOpened": "2026-10-07T16:55:19.287Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-07T16:55:19.287Z"
             },
             {
               "$type": "Document",
@@ -1129,8 +1123,7 @@
               "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\requirements.txt",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
-              "WhenOpened": "2026-09-15T13:20:52.272Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-15T13:20:52.272Z"
             },
             {
               "$type": "Document",
@@ -1142,8 +1135,7 @@
               "RelativeToolTip": "LearnovaAi\\plagiarism-ai-detector\\.env",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2026-09-23T06:35:52.012Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-09-23T06:35:52.012Z"
             },
             {
               "$type": "Document",

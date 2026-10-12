@@ -120,8 +120,8 @@ class EmailService:
             "message": "Mã xác thực OTP đã được gửi đến hộp thư của bạn.",
             "expires_in_seconds": expire_minutes * 60,
             "email_dispatched": email_sent,
-            # Nếu chưa cấu hình Resend hay SMTP, hoặc đang bật DEBUG -> trả debug_otp để tiện kiểm thử
-            "debug_otp": otp_code if (not settings.RESEND_API_KEY and not settings.SMTP_HOST) or settings.DEBUG else None,
+            # Không trả OTP về client để bảo mật
+            "debug_otp": None,
         }
 
     def verify_otp(self, email: str, otp_code: str, purpose: str = "signup") -> bool:
@@ -243,7 +243,7 @@ Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.
 
 Trân trọng,
 Đội ngũ LearnovaAI
-https://103.178.235.88.sslip.io
+https://learnnovacheckai.com
 """
 
         # 2. HTML version thiết kế chuyên nghiệp, tỉ lệ text/html tối ưu, không có từ trigger spam

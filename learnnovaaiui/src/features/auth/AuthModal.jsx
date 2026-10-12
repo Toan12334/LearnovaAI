@@ -31,7 +31,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   // OTP State
   const [otpCode, setOtpCode] = useState('');
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [debugOtp, setDebugOtp] = useState(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,7 +59,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     setPassword('');
     setConfirmPassword('');
     setOtpCode('');
-    setDebugOtp(null);
     setSignupStep('info');
   };
 
@@ -95,9 +93,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
       const res = await sendOtp(email.trim(), 'signup');
       setSignupStep('otp');
       setResendCountdown(60);
-      if (res?.debug_otp) {
-        setDebugOtp(res.debug_otp);
-      }
       setSuccessMsg(res?.message || 'Mã xác thực 6 số đã được gửi tới email của bạn.');
     } catch (err) {
       setErrorMsg(err.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.');
@@ -115,9 +110,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     try {
       const res = await sendOtp(email.trim(), 'signup');
       setResendCountdown(60);
-      if (res?.debug_otp) {
-        setDebugOtp(res.debug_otp);
-      }
       setSuccessMsg('Đã gửi lại mã OTP mới về email của bạn.');
     } catch (err) {
       setErrorMsg(err.message || 'Không thể gửi lại mã OTP.');
@@ -480,13 +472,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                   Đổi
                 </button>
               </div>
-
-              {debugOtp && (
-                <div className="auth-otp-debug-banner">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Mã OTP thử nghiệm: <b>{debugOtp}</b></span>
-                </div>
-              )}
 
               <label className="auth-label" style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
                 Nhập mã xác thực 6 số

@@ -62,8 +62,8 @@ class Settings(BaseSettings):
     PAYOS_CLIENT_ID: str | None = None
     PAYOS_API_KEY: str | None = None
     PAYOS_CHECKSUM_KEY: str | None = None
-    PAYOS_RETURN_URL: str = "https://103.178.235.88.sslip.io"
-    PAYOS_CANCEL_URL: str = "https://103.178.235.88.sslip.io"
+    PAYOS_RETURN_URL: str = "https://learnnovacheckai.com"
+    PAYOS_CANCEL_URL: str = "https://learnnovacheckai.com"
 
     # Search APIs
     SEARCH_API_KEY: str | None = None

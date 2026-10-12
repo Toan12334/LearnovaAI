@@ -3,6 +3,7 @@ import { DocumentInput } from './components/DocumentInput';
 import { PlagiarismReportView } from './components/PlagiarismReportView';
 import { TimestampAudit } from './components/TimestampAudit';
 import { plagiarismApi } from '../../services/plagiarismApi';
+import { uploadService } from '../../services/uploadService';
 import { historyService } from '../../services/historyService';
 import { useAuth } from '../auth';
 import { AlertCircle, RefreshCw, X, Lock, Zap } from 'lucide-react';
@@ -39,51 +40,63 @@ export function PlagiarismChecker({ onOpenAuth }) {
 
     try {
       let res;
-      let checkTitle = 'Văn bản kiểm tra';
-      if (payload.type === 'file') {
+      let checkTitle = payload.title || 'Văn bản kiểm tra';
+      let fullContent = (payload.text || '').trim();
+
+      // Trường hợp gửi file mà chưa có text (fallback tự động parse)
+      if (!fullContent && payload.file) {
         setStatusMessage('Đang tải file lên và trích xuất nội dung văn bản...');
-        setProgressPercentage(30);
-        res = await plagiarismApi.checkDocument(payload.file);
+        setProgressPercentage(20);
+        const parsed = await uploadService.uploadAndParseFile(payload.file);
+        fullContent = (parsed.extracted_text || '').trim();
         checkTitle = payload.file.name;
-        setOriginalText(`[Tệp đính kèm: ${payload.file.name} - ${(payload.file.size / 1024).toFixed(1)} KB]`);
-        setProgressPercentage(100);
-      } else {
-        setStatusMessage('Đang khởi tạo tác vụ kiểm tra ngầm (Background Task)...');
-        const initRes = await plagiarismApi.checkTextAsync({
-          text: payload.text,
-          title: payload.title,
-          enable_web_search: payload.enable_web_search,
-          similarity_threshold: payload.similarity_threshold,
-        });
-        checkTitle = payload.title || payload.text.slice(0, 50) + '...';
-        setOriginalText(payload.text);
+        if (!fullContent || fullContent.length < 15) {
+          throw new Error(parsed.warning || 'Nội dung file quá ngắn hoặc không trích xuất được văn bản (có thể là file PDF ảnh scan).');
+        }
+      }
 
-        const docId = initRes.document_id;
-        let pollRes = initRes;
-        let attempts = 0;
-        const maxAttempts = 120; // 120 * 1.5s = 3 minutes timeout safety
+      if (!fullContent || fullContent.length < 15) {
+        throw new Error('Nội dung văn bản cần tối thiểu 15 ký tự để tiến hành đối soát.');
+      }
 
-        while (pollRes.status === 'processing' && attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          attempts += 1;
-          pollRes = await plagiarismApi.getStatus(docId);
-          if (pollRes) {
-            if (pollRes.current_step) {
-              setStatusMessage(pollRes.current_step);
-            }
-            if (typeof pollRes.progress_percentage === 'number') {
-              setProgressPercentage(pollRes.progress_percentage);
-            }
+      // Lưu trữ văn bản gốc trọn vẹn để hiển thị trên Báo cáo và Modal Diff
+      setOriginalText(fullContent);
+
+      setStatusMessage('Đang khởi tạo tác vụ kiểm tra ngầm (Background Task)...');
+      setProgressPercentage(30);
+
+      const initRes = await plagiarismApi.checkTextAsync({
+        text: fullContent,
+        title: checkTitle,
+        enable_web_search: payload.enable_web_search,
+        similarity_threshold: payload.similarity_threshold,
+      });
+
+      const docId = initRes.document_id;
+      let pollRes = initRes;
+      let attempts = 0;
+      const maxAttempts = 120; // 120 * 1.5s = 3 minutes timeout safety
+
+      while (pollRes.status === 'processing' && attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        attempts += 1;
+        pollRes = await plagiarismApi.getStatus(docId);
+        if (pollRes) {
+          if (pollRes.current_step) {
+            setStatusMessage(pollRes.current_step);
+          }
+          if (typeof pollRes.progress_percentage === 'number') {
+            setProgressPercentage(pollRes.progress_percentage);
           }
         }
-
-        if (pollRes.status === 'failed') {
-          throw new Error(pollRes.current_step || 'Quá trình đối soát ngầm gặp lỗi.');
-        }
-
-        res = pollRes;
-        setProgressPercentage(100);
       }
+
+      if (pollRes.status === 'failed') {
+        throw new Error(pollRes.current_step || 'Quá trình đối soát ngầm gặp lỗi.');
+      }
+
+      res = pollRes;
+      setProgressPercentage(100);
 
       setReport(res);
       setStatusMessage('');

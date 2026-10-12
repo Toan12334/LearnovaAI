@@ -8,9 +8,9 @@ Tài liệu chi tiết dành cho lập trình viên (Developer) phục vụ côn
 
 | Dịch vụ | URL / Địa chỉ | Ghi chú |
 | :--- | :--- | :--- |
-| **Website Frontend (User UI)** | [http://103.178.235.88/](http://103.178.235.88/) | Giao diện chính ứng dụng Web SPA (Nginx port 80) |
-| **Backend API Gateway** | [http://103.178.235.88/api/](http://103.178.235.88/api/) | FastAPI Backend (Reverse Proxy từ port 8000) |
-| **Tài liệu API Swagger UI** | [http://103.178.235.88/docs](http://103.178.235.88/docs) | Giao diện kiểm thử toàn bộ REST Endpoints |
+| **Website Frontend (User UI)** | [https://learnnovacheckai.com](https://learnnovacheckai.com) | Giao diện chính Web SPA (đã hỗ trợ SSL HTTPS) |
+| **Backend API Gateway** | [https://learnnovacheckai.com/api/](https://learnnovacheckai.com/api/) | FastAPI Backend (Reverse Proxy từ port 8000) |
+| **Tài liệu API Swagger UI** | [https://learnnovacheckai.com/docs](https://learnnovacheckai.com/docs) | Giao diện kiểm thử toàn bộ REST Endpoints |
 | **Supabase Studio Dashboard** | [http://103.178.235.88:3000](http://103.178.235.88:3000) | Giao diện Web quản lý Database & Users trực quan |
 | **Supabase REST / Auth API** | [http://103.178.235.88:54321](http://103.178.235.88:54321) | Cổng Supabase GoTrue Auth & PostgREST API |
 

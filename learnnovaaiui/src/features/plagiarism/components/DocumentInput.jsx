@@ -9,14 +9,24 @@ import {
   Sliders,
   Globe,
   AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  FileUp,
+  RefreshCw,
+  FileSpreadsheet,
 } from 'lucide-react';
-
 import { Lock } from 'lucide-react';
+import { uploadService } from '../../../services/uploadService';
 
 export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = true, onRequireAuth }) {
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileMeta, setFileMeta] = useState(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [parseWarning, setParseWarning] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [threshold, setThreshold] = useState(75);
   const [enableWebSearch, setEnableWebSearch] = useState(true);
@@ -37,26 +47,107 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
       `cùng cơ sở dữ liệu Vector Qdrant để phân tích ngữ nghĩa và đối soát nguồn Internet thông qua Google Serper.`
     );
     setSelectedFile(null);
+    setFileMeta(null);
+    setParseWarning(null);
     setValidationError('');
+  };
+
+  const processFile = async (file) => {
+    if (!file) return;
+
+    const validExtensions = ['.pdf', '.docx', '.doc', '.txt'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+
+    if (!validExtensions.includes(fileExt)) {
+      setValidationError('Định dạng file không hỗ trợ. Vui lòng chọn PDF (.pdf), Word (.docx) hoặc Text (.txt).');
+      return;
+    }
+
+    if (fileExt === '.doc') {
+      setValidationError('Định dạng Word cũ (.doc) không được hỗ trợ trực tiếp. Vui lòng lưu tệp thành .docx hoặc .pdf rồi tải lên.');
+      return;
+    }
+
+    setValidationError('');
+    setParseWarning(null);
+    setIsParsingFile(true);
+
+    try {
+      const result = await uploadService.uploadAndParseFile(file);
+
+      setSelectedFile(file);
+      setFileMeta({
+        name: file.name,
+        size: file.size,
+        format: result.file_format || fileExt.replace('.', ''),
+        page_count: result.page_count,
+        word_count: result.word_count || (result.extracted_text ? result.extracted_text.split(/\s+/).filter(Boolean).length : 0),
+      });
+
+      if (!title.trim()) {
+        setTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
+
+      const extracted = result.extracted_text || '';
+      setText(extracted);
+
+      if (result.warning) {
+        setParseWarning(result.warning);
+      } else if (!extracted.trim() || extracted.trim().length < 15) {
+        setParseWarning('Không thể trích xuất văn bản từ tệp này (có thể là tệp PDF dạng ảnh quét). Vui lòng thử tệp PDF dạng văn bản hoặc file Word.');
+      }
+    } catch (err) {
+      console.error('[DocumentInput parse error]:', err);
+      const errMsg = err.response?.data?.detail || err.message || 'Không thể trích xuất nội dung từ tệp đã chọn.';
+      setValidationError(errMsg);
+      setSelectedFile(null);
+      setFileMeta(null);
+    } finally {
+      setIsParsingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validExtensions = ['.pdf', '.docx', '.doc', '.txt'];
-      const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-      if (!validExtensions.includes(fileExt)) {
-        setValidationError('Định dạng file không hỗ trợ. Vui lòng chọn PDF, DOCX hoặc TXT.');
-        return;
-      }
-      setSelectedFile(file);
-      setTitle(file.name.replace(/\.[^/.]+$/, ''));
-      setValidationError('');
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLoading && !isParsingFile) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (isLoading || isParsingFile) return;
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      processFile(files[0]);
     }
   };
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
+    setFileMeta(null);
+    setParseWarning(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -66,34 +157,49 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
     e.preventDefault();
     setValidationError('');
 
+    if (isParsingFile) {
+      setValidationError('Đang trích xuất nội dung từ tệp, vui lòng chờ trong giây lát...');
+      return;
+    }
+
     if (!isAuthenticated) {
       if (onRequireAuth) onRequireAuth();
       return;
     }
 
-    if (selectedFile) {
-      onCheck({
-        type: 'file',
-        file: selectedFile,
-        title: title || selectedFile.name,
-        similarity_threshold: threshold / 100,
-        enable_web_search: enableWebSearch,
-      });
-      return;
-    }
-
-    if (!text.trim() || text.trim().length < 15) {
-      setValidationError('Nội dung kiểm tra cần tối thiểu 15 ký tự (hoặc tải tệp lên).');
+    const trimmedText = text.trim();
+    if (!trimmedText || trimmedText.length < 15) {
+      setValidationError('Nội dung kiểm tra cần tối thiểu 15 ký tự (vui lòng nhập văn bản hoặc tải tệp có chứa chữ).');
       return;
     }
 
     onCheck({
       type: 'text',
-      text: text.trim(),
-      title: title.trim() || 'Văn bản kiểm tra',
+      text: trimmedText,
+      title: title.trim() || selectedFile?.name || 'Văn bản kiểm tra',
       similarity_threshold: threshold / 100,
       enable_web_search: enableWebSearch,
+      file: selectedFile,
+      fileMeta: fileMeta,
     });
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  };
+
+  const getFileBadgeColor = (format) => {
+    switch (format?.toLowerCase()) {
+      case 'pdf':
+        return { bg: 'rgba(239, 68, 68, 0.15)', text: '#f87171', border: 'rgba(239, 68, 68, 0.3)' };
+      case 'docx':
+      case 'doc':
+        return { bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.3)' };
+      default:
+        return { bg: 'rgba(168, 85, 247, 0.15)', text: '#c084fc', border: 'rgba(168, 85, 247, 0.3)' };
+    }
   };
 
   return (
@@ -103,31 +209,38 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
         style={{
           position: 'absolute',
           inset: '-2px',
-          background: 'linear-gradient(135deg, rgba(79, 124, 255, 0.35), rgba(139, 92, 246, 0.35), rgba(0, 212, 255, 0.2))',
+          background: isDragging
+            ? 'linear-gradient(135deg, rgba(79, 124, 255, 0.6), rgba(0, 212, 255, 0.5))'
+            : 'linear-gradient(135deg, rgba(79, 124, 255, 0.35), rgba(139, 92, 246, 0.35), rgba(0, 212, 255, 0.2))',
           borderRadius: '24px',
           filter: 'blur(16px)',
-          opacity: 0.6,
+          opacity: isDragging ? 0.9 : 0.6,
           pointerEvents: 'none',
           zIndex: 0,
+          transition: 'all 0.3s ease',
         }}
       />
 
       {/* Main Container Card */}
       <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         style={{
           position: 'relative',
           zIndex: 1,
           backgroundColor: '#151C2F',
           borderRadius: '20px',
-          border: '1px solid rgba(79, 124, 255, 0.2)',
+          border: isDragging ? '2px dashed #4F7CFF' : '1px solid rgba(79, 124, 255, 0.2)',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
           padding: '1.75rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.25rem',
+          transition: 'border 0.2s ease',
         }}
       >
-        {/* Top Header / Title Input & Sample Text Button */}
+        {/* Top Header / Title Input & Settings & Sample Text Button */}
         <div
           style={{
             display: 'flex',
@@ -145,7 +258,7 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Tiêu đề tài liệu / tiểu luận (tùy chọn)..."
+              placeholder="Tiêu đề tài liệu / tiểu luận (tự động điền theo tên tệp)..."
               style={{
                 width: '100%',
                 background: 'transparent',
@@ -249,83 +362,223 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
           </div>
         )}
 
-        {/* Selected File Banner if present */}
-        {selectedFile && (
+        {/* Parsing File Indicator */}
+        {isParsingFile && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.75rem 1rem',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(99, 102, 241, 0.12)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
+              gap: '0.75rem',
+              padding: '0.85rem 1.25rem',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(79, 124, 255, 0.12)',
+              border: '1px solid rgba(79, 124, 255, 0.3)',
+              color: '#93c5fd',
+              fontSize: '0.88rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ padding: '0.5rem', borderRadius: '8px', background: 'rgba(99, 102, 241, 0.25)', color: '#818cf8' }}>
-                <FileText size={20} />
+            <Loader2 size={18} className="animate-spin text-indigo-400" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontWeight: 600, color: '#f8fafc' }}>Đang trích xuất nội dung từ tệp tài liệu...</span>
+              <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                Hệ thống đang đọc cấu trúc bảng, đoạn văn và chuyển hóa thành văn bản phân tích.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Selected File Banner Card (Extracted info) */}
+        {fileMeta && !isParsingFile && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(99, 102, 241, 0.1)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '220px' }}>
+              {/* Badge Icon */}
+              <div
+                style={{
+                  padding: '0.55rem',
+                  borderRadius: '10px',
+                  backgroundColor: getFileBadgeColor(fileMeta.format).bg,
+                  border: `1px solid ${getFileBadgeColor(fileMeta.format).border}`,
+                  color: getFileBadgeColor(fileMeta.format).text,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FileText size={22} />
               </div>
+
               <div>
-                <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.9rem' }}>{selectedFile.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                  {(selectedFile.size / 1024).toFixed(1)} KB • Sẵn sàng tải lên kiểm tra file
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: '0.92rem' }}>
+                    {fileMeta.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      padding: '0.1rem 0.45rem',
+                      borderRadius: '4px',
+                      backgroundColor: getFileBadgeColor(fileMeta.format).bg,
+                      color: getFileBadgeColor(fileMeta.format).text,
+                      border: `1px solid ${getFileBadgeColor(fileMeta.format).border}`,
+                    }}
+                  >
+                    {fileMeta.format}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                  <span>{formatFileSize(fileMeta.size)}</span>
+                  <span>•</span>
+                  <span style={{ color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={13} />
+                    Đã trích xuất {fileMeta.word_count?.toLocaleString()} từ
+                    {fileMeta.page_count ? ` (${fileMeta.page_count} trang)` : ''}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRemoveFile}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
-                padding: '4px',
-              }}
-              title="Xóa tệp"
-            >
-              <X size={18} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#cbd5e1',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Thay đổi tệp khác"
+              >
+                <RefreshCw size={13} />
+                <span>Đổi tệp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                disabled={isLoading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#f87171',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Xóa tệp đính kèm"
+              >
+                <X size={15} />
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Text Input Area */}
-        {!selectedFile && (
-          <div style={{ position: 'relative' }}>
-            <textarea
-              value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                if (validationError) setValidationError('');
-              }}
-              placeholder="Dán hoặc nhập nội dung văn bản cần kiểm tra đạo văn vào đây (tối thiểu 15 ký tự)..."
-              rows={8}
-              style={{
-                width: '100%',
-                backgroundColor: 'rgba(11, 16, 32, 0.55)',
-                color: '#f8fafc',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '12px',
-                padding: '1rem',
-                fontSize: '1rem',
-                lineHeight: '1.7',
-                resize: 'vertical',
-                outline: 'none',
-                fontFamily: 'inherit',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.2s ease',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'rgba(79, 124, 255, 0.5)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-              }}
-            />
+        {/* Warning if PDF is image scanned or no words found */}
+        {parseWarning && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.6rem',
+              color: '#fbbf24',
+              fontSize: '0.85rem',
+              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+              padding: '0.75rem 1rem',
+              borderRadius: '10px',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+            }}
+          >
+            <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontWeight: 600 }}>Cảnh báo trích xuất tài liệu:</div>
+              <div style={{ marginTop: '2px', lineHeight: '1.4' }}>{parseWarning}</div>
+            </div>
           </div>
         )}
+
+        {/* Text Input Area (Always available so user can view/edit extracted text) */}
+        <div style={{ position: 'relative' }}>
+          <textarea
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (validationError) setValidationError('');
+            }}
+            placeholder="Dán hoặc nhập nội dung văn bản cần kiểm tra đạo văn vào đây (hoặc kéo thả / bấm 'Tải file lên' để đọc từ Word, PDF)..."
+            rows={8}
+            disabled={isLoading || isParsingFile}
+            style={{
+              width: '100%',
+              backgroundColor: 'rgba(11, 16, 32, 0.55)',
+              color: '#f8fafc',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '12px',
+              padding: '1rem',
+              fontSize: '0.98rem',
+              lineHeight: '1.7',
+              resize: 'vertical',
+              outline: 'none',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.2s ease',
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = 'rgba(79, 124, 255, 0.5)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+            }}
+          />
+
+          {isDragging && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                color: '#60a5fa',
+                pointerEvents: 'none',
+              }}
+            >
+              <FileUp size={36} className="animate-bounce" />
+              <span style={{ fontWeight: 600, fontSize: '1rem' }}>Thả tệp PDF, DOCX hoặc TXT vào đây để đọc nội dung</span>
+            </div>
+          )}
+        </div>
 
         {/* Validation Error Message */}
         {validationError && (
@@ -372,7 +625,9 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
               }}
             >
               <Type size={14} color="#818cf8" />
-              <span>{wordCount} từ</span>
+              <span style={{ fontWeight: 600, color: wordCount > 0 ? '#f8fafc' : '#94a3b8' }}>
+                {wordCount.toLocaleString()} từ
+              </span>
             </div>
 
             <div
@@ -387,7 +642,7 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
               }}
             >
               <Clock size={14} color="#38bdf8" />
-              <span>{readTime} phút đọc</span>
+              <span>~{readTime} phút đọc</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: '0.4rem' }}>
@@ -417,7 +672,7 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept=".pdf,.docx,.doc,.txt"
+              accept=".pdf,.docx,.txt"
               style={{ display: 'none' }}
             />
 
@@ -430,7 +685,7 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
                 }
                 fileInputRef.current?.click();
               }}
-              disabled={isLoading}
+              disabled={isLoading || isParsingFile}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -442,17 +697,26 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
                 color: '#e2e8f0',
                 fontSize: '0.88rem',
                 fontWeight: 500,
-                cursor: isLoading ? 'not-allowed' : 'pointer',
+                cursor: (isLoading || isParsingFile) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
               }}
             >
-              <Upload size={16} />
-              <span>Tải file lên</span>
+              {isParsingFile ? (
+                <>
+                  <Loader2 size={16} className="animate-spin text-indigo-400" />
+                  <span>Đang đọc tệp...</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={16} />
+                  <span>{fileMeta ? 'Chọn tệp khác' : 'Tải file lên'}</span>
+                </>
+              )}
             </button>
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isParsingFile}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -469,8 +733,8 @@ export function DocumentInput({ onCheck, isLoading = false, isAuthenticated = tr
                 boxShadow: !isAuthenticated
                   ? '0 4px 15px rgba(51, 65, 85, 0.3)'
                   : '0 4px 20px rgba(79, 124, 255, 0.4)',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                opacity: isLoading ? 0.7 : 1,
+                cursor: (isLoading || isParsingFile) ? 'not-allowed' : 'pointer',
+                opacity: (isLoading || isParsingFile) ? 0.7 : 1,
                 transform: isLoading ? 'none' : 'translateY(0)',
                 transition: 'all 0.2s ease',
               }}

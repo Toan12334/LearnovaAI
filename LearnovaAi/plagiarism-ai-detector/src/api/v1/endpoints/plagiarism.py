@@ -1,6 +1,6 @@
 import asyncio
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, BackgroundTasks, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, BackgroundTasks, status
 from src.models.request import InternetPlagiarismRequest, PlagiarismCheckRequest
 from src.models.response import (
     InternetPlagiarismResponse,
@@ -251,6 +251,9 @@ async def get_check_status(document_id: str):
 @router.post("/check-file", response_model=PlagiarismCheckResponse, summary="[GD1] Kiểm tra đạo văn qua File (PDF, DOCX, TXT)")
 async def check_plagiarism_file(
     file: UploadFile = File(...),
+    similarity_threshold: Optional[float] = Form(None),
+    enable_web_search: bool = Form(True),
+    title: Optional[str] = Form(None),
     current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user),
 ):
     """
@@ -262,13 +265,26 @@ async def check_plagiarism_file(
         if len(extracted_text.strip()) < 15:
             raise HTTPException(status_code=400, detail="Nội dung file quá ngắn hoặc không đọc được văn bản.")
 
+        cleaner = plagiarism_pipeline.cleaner
+        word_count = cleaner.count_words(extracted_text)
+
         effective_user_id = current_user["id"] if current_user else None
+        if current_user:
+            words_balance = current_user.get("words_balance", 5000)
+            if words_balance is not None and words_balance < word_count:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=f"Số dư tài khoản không đủ ({words_balance:,} từ khả dụng, tài liệu cần {word_count:,} từ). Vui lòng nạp thêm gói cước.",
+                )
+
+        doc_title = title.strip() if title and title.strip() else file.filename
         result = await asyncio.to_thread(
             plagiarism_pipeline.run,
             content=extracted_text,
-            title=file.filename,
+            title=doc_title,
             user_id=effective_user_id,
-            enable_web_search=True,
+            enable_web_search=enable_web_search,
+            similarity_threshold=similarity_threshold,
         )
 
         matches_models = [
@@ -287,8 +303,8 @@ async def check_plagiarism_file(
         score = result.get("plagiarism_score", 0.0)
         return PlagiarismCheckResponse(
             document_id=str(result["document_id"]),
-            title=file.filename,
-            word_count=result.get("word_count", 0),
+            title=doc_title,
+            word_count=result.get("word_count", word_count),
             total_chunks=result.get("total_chunks", 0),
             matched_chunks_count=result.get("matched_chunks_count", 0),
             plagiarism_score=score,
@@ -300,8 +316,11 @@ async def check_plagiarism_file(
             warning=result.get("warning"),
             matches=matches_models,
             status=result.get("status", "completed"),
-            message="Xử lý file và đối soát đạo văn thành công."
+            message="Xử lý file và đối soát đạo văn thành công.",
+            extracted_text=extracted_text,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
