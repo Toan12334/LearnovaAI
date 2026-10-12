@@ -72,6 +72,13 @@ export const adminUsersApi = {
   async createUser(data) {
     return apiClient.post('/api/v1/admin/users', data);
   },
+
+  /**
+   * Xóa vĩnh viễn tài khoản người dùng
+   */
+  async deleteUser(userId) {
+    return apiClient.delete(`/api/v1/admin/users/${userId}`);
+  },
 };
 
 export default adminUsersApi;

@@ -149,8 +149,27 @@ async def list_admin_users(
         users = res.data or []
         total = res.count if hasattr(res, "count") and res.count is not None else len(users)
 
-        # Đếm số tài liệu đã kiểm tra cho từng user trong trang hiện tại
+        # Đếm số tài liệu và kiểm tra email cho từng user trong trang hiện tại
         if users:
+            # Tự động fallback lấy email từ auth.users nếu profiles.email còn trống
+            need_email_ids = [u["id"] for u in users if not u.get("email")]
+            if need_email_ids:
+                admin_client = get_supabase_admin_client()
+                if admin_client:
+                    try:
+                        all_auth_users = admin_client.auth.admin.list_users()
+                        if all_auth_users and hasattr(all_auth_users, "users"):
+                            auth_map = {str(au.id): au.email for au in all_auth_users.users}
+                            for u in users:
+                                if not u.get("email") and u["id"] in auth_map:
+                                    u["email"] = auth_map[u["id"]]
+                                    try:
+                                        supabase.table("profiles").update({"email": auth_map[u["id"]]}).eq("id", u["id"]).execute()
+                                    except Exception:
+                                        pass
+                    except Exception:
+                        pass
+
             user_ids = [u["id"] for u in users]
             try:
                 docs_res = supabase.table("documents").select("user_id").in_("user_id", user_ids).execute()
@@ -432,3 +451,57 @@ async def create_user_by_admin(
         if "already registered" in err_msg.lower() or "already exists" in err_msg.lower():
             raise HTTPException(status_code=400, detail="Email này đã tồn tại trong hệ thống.")
         raise HTTPException(status_code=500, detail=f"Lỗi tạo tài khoản: {err_msg}")
+
+
+# -------------------------------------------------------------
+# 8. XÓA VĨNH VIỄN TÀI KHOẢN NGƯỜI DÙNG
+# -------------------------------------------------------------
+@router.delete("/{user_id}", summary="[Admin] Xóa vĩnh viễn tài khoản người dùng")
+async def delete_user_by_admin(
+    user_id: str,
+    admin: Dict[str, Any] = Depends(get_current_admin),
+):
+    """
+    Xóa tài khoản người dùng khỏi hệ thống:
+    - Xóa trong auth.users (qua Supabase Admin API).
+    - Xóa các tài liệu và hồ sơ trong profiles.
+    """
+    clean_uid = user_id.strip()
+    if str(admin.get("id")) == clean_uid:
+        raise HTTPException(status_code=400, detail="Không thể xóa tài khoản Admin đang đăng nhập.")
+
+    admin_client = get_supabase_admin_client()
+    supabase = get_supabase_client()
+
+    # Kiểm tra user
+    target_res = supabase.table("profiles").select("id, email, full_name, role").eq("id", clean_uid).execute()
+    target_data = target_res.data[0] if target_res.data else {}
+    target_email = target_data.get("email") or target_data.get("full_name") or clean_uid
+
+    try:
+        # 1. Xóa trong auth.users
+        if admin_client:
+            try:
+                admin_client.auth.admin.delete_user(clean_uid)
+            except Exception as ae:
+                logger.warning(f"Lỗi xóa auth.users {clean_uid}: {ae}")
+
+        # 2. Xóa các tài liệu liên quan
+        try:
+            supabase.table("documents").delete().eq("user_id", clean_uid).execute()
+        except Exception:
+            pass
+
+        # 3. Xóa trong profiles
+        supabase.table("profiles").delete().eq("id", clean_uid).execute()
+
+        logger.info(f"[Admin Audit] {admin.get('email')} đã xóa vĩnh viễn user {target_email} ({clean_uid})")
+
+        return {
+            "message": f"Đã xóa vĩnh viễn tài khoản {target_email} thành công.",
+            "deleted_user_id": clean_uid,
+        }
+    except Exception as exc:
+        logger.error(f"[Admin Delete User Error]: {exc}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xóa tài khoản: {str(exc)}")
+

@@ -22,6 +22,7 @@ import {
   X,
   ArrowUpDown,
   MoreVertical,
+  Trash2,
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -196,6 +197,31 @@ export function AdminUsersPage({ onBack }) {
       fetchStats();
     } catch (err) {
       showToast(err.message || 'Lỗi khi cập nhật trạng thái tài khoản.', 'error');
+    }
+  };
+
+  // Delete User
+  const handleDeleteUser = async (targetUser) => {
+    if (targetUser.id === currentUser?.id) {
+      showToast('Không thể xóa tài khoản Admin đang đăng nhập!', 'error');
+      return;
+    }
+    const userDisplay = targetUser.email || targetUser.full_name || 'người dùng này';
+    const ok = window.confirm(
+      `⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${userDisplay}" không?\n\nToàn bộ dữ liệu hồ sơ, số từ và tài liệu của người dùng này sẽ bị xóa sạch khỏi hệ thống.`
+    );
+    if (!ok) return;
+
+    try {
+      setActionLoading(true);
+      const res = await adminUsersApi.deleteUser(targetUser.id);
+      showToast(res.message || `Đã xóa vĩnh viễn tài khoản ${userDisplay}!`);
+      fetchUsers();
+      fetchStats();
+    } catch (err) {
+      showToast(err.message || 'Lỗi khi xóa tài khoản.', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -627,6 +653,21 @@ export function AdminUsersPage({ onBack }) {
                             }`}
                           >
                             {isBanned ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                          </button>
+
+                          {/* Delete User */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u)}
+                            disabled={isSelf}
+                            title={isSelf ? 'Không thể xóa chính mình' : 'Xóa vĩnh viễn tài khoản (Spam/Rác)'}
+                            className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                              isSelf
+                                ? 'opacity-30 cursor-not-allowed bg-slate-50 text-slate-300 border-slate-200'
+                                : 'bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 border-slate-200'
+                            }`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
 
                         </div>

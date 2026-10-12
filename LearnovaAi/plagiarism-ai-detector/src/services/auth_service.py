@@ -121,9 +121,11 @@ class AuthService:
         try:
             profile_data = {
                 "id": user_id,
+                "email": email,
                 "full_name": full_name,
                 "avatar_url": avatar_url,
                 "role": "user",
+                "status": "active",
                 "words_balance": 5000,
             }
             self.supabase.table("profiles").upsert(profile_data).execute()
@@ -244,8 +246,10 @@ class AuthService:
         try:
             profile_data = {
                 "id": user_id,
+                "email": email,
                 "full_name": full_name,
                 "avatar_url": avatar_url,
+                "status": "active",
             }
             self.supabase.table("profiles").upsert(profile_data).execute()
             logger.info(f"Đã cập nhật profile thành công cho user ID: {user_id}")
